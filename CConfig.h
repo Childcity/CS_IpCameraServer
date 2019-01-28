@@ -4,6 +4,7 @@
 
 #include <boost/asio.hpp>
 #include <string>
+#include <iomanip>
 #include "main.h"
 
 #ifdef WIN32
@@ -20,9 +21,6 @@ private:
         explicit KeyBindings(string exePath);
 
 		string dbPath;
-        string bakDbPath;
-		string restoreDbPath;
-		long newBackupTimeoutMillisec;
 		long blockOrClusterSize;
 		long waitTimeMillisec;
 		long countOfEttempts;

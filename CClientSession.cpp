@@ -110,101 +110,52 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
     if( !started() )
         return;
 
-    try {
-        // process the msg]
 
-        // we must make copy of read_buffer_, for quick unlock cs_ mutex
-        size_t len = strlen(read_buffer_.get()) - sizeEndOfMsg;
+    // process the msg
 
-        if((len < 7)||(len > MAX_READ_BUFFER))
-            len = 1;
+    // we must make copy of read_buffer_, for quick unlock cs_ mutex
+    size_t len = strlen(read_buffer_.get()) - sizeEndOfMsg;
 
-        string inMsg(len, char(0));
-        size_t cleanMsgSize = 0;
-        {
-            boost::recursive_mutex::scoped_lock lk(cs_);
-            for (size_t i = 0; i < inMsg.size(); ++i) {
-                //continue if read_buffer_[i] == one of (\r, \n, NULL)
-                if((read_buffer_[i] != char(0)) && (read_buffer_[i] != char(13))  && (read_buffer_[i] != char(10)))
-                    inMsg[cleanMsgSize++] = read_buffer_[i];
-            }
+    if((len < 7)||(len > MAX_READ_BUFFER))
+        len = 1;
+
+    string inMsg(len, char(0));
+    size_t cleanMsgSize = 0;
+    {
+        boost::recursive_mutex::scoped_lock lk(cs_);
+        for (size_t i = 0; i < inMsg.size(); ++i) {
+            //continue if read_buffer_[i] == one of (\r, \n, NULL)
+            if((read_buffer_[i] != char(0)) && (read_buffer_[i] != char(13))  && (read_buffer_[i] != char(10)))
+                inMsg[cleanMsgSize++] = read_buffer_[i];
         }
-        inMsg.resize(cleanMsgSize);
+    }
+    inMsg.resize(cleanMsgSize);
 
 
-        VLOG(1) << "DEBUG: received msg '" << inMsg << "\nDEBUG: received bytes from user '" <<username() <<"' bytes: " << bytes
-                << " delay: " <<(boost::posix_time::microsec_clock::local_time() - last_ping_).total_milliseconds() <<"ms";
+    VLOG(1) << "DEBUG: received msg !!!" << inMsg << "!!!\nDEBUG: received bytes from user '" <<username() <<"' bytes: " << bytes;
+            //<< " delay: " <<(boost::posix_time::microsec_clock::local_time() - last_ping_).total_milliseconds() <<"ms";
 
-        if(businessLogic_->isRestoreExecuting()){
-            VLOG(1) <<"DEBUG: Server is busy at the moment. ";
-            do_write("Server is busy at the moment. Database restore progress [" + std::to_string(businessLogic_->getRestoreProgress()) + "%]");
-            stop();
+    if(0 == inMsg.find(u8"login ")){
+        on_login(inMsg);
 
-        }else if(0 == inMsg.find(u8"UPDATE Config SET PlaceFree")){
-            int progress = businessLogic_->getBackUpProgress();
-            string msg;
+    }else if(0 == inMsg.find(u8"ping")){
+        on_ping();
 
-            if(progress > -1 && progress <100) {
-                msg = "'UPDATE Config SET PlaceFree...'. Backup in progress [" + std::to_string(progress) + "%]";
-            }else{
-                businessLogic_->updatePlaceFree(db, inMsg, "select PlaceFree from Config;");
-                msg = "NONE";
-            }
+    }else if(0 == inMsg.find(u8"who")){
+        on_clients();
 
-            do_write(msg);
+    }else if(0 == inMsg.find(u8"fibo ")){
+        on_fibo(inMsg);
 
-        }else if(0 == inMsg.find(u8"get_place_free")) {
-            try {
-                businessLogic_->checkPlaceFree(db, "select PlaceFree from Config;");
-                do_write(businessLogic_->getCachedPlaceFree());
-            } catch (BusinessLogicError &e){
-                // if an error occur, send last PlaceFree. If last PlaceFree == -1, send 0
-                do_write(businessLogic_->getCachedPlaceFree() == "-1" ? "0" : businessLogic_->getCachedPlaceFree());
-            }
-
-        }else if(0 == inMsg.find(u8"restore_db")){
-            do_restore_db();
-
-        }else if(0 == inMsg.find(u8"backup_db")){
-            auto self = shared_from_this();
-            io_context_.post([self, this](){ //async call
-                do_db_backup();
-            });
-
-        }else if(0 == inMsg.find(u8"get_db_backup_progress")){
-            do_ask_db_backup_progress();
-
-        }else if(0 == inMsg.find(u8"get_db_backup")){
-            do_get_db_backup();
-
-        }else if(0 == inMsg.find(u8"login ")){
-            on_login(inMsg);
-
-        }else if(0 == inMsg.find(u8"ping")){
-            on_ping();
-
-        }else if(0 == inMsg.find(u8"who")){
-            on_clients();
-
-        }else if(0 == inMsg.find(u8"fibo ")){
-            on_fibo(inMsg);
-
-        }else if(0 == inMsg.find(u8"exit")){
-            stop();
-
-        }else if(inMsg.size() > 10) {
-            on_query(inMsg);
-
-        }else{
-            do_write(string(u8"ERROR: very short command:") + inMsg + "\n");
-            LOG(WARNING) << "very short command from client " << username() << ": '" << inMsg << '\'';
-        }
-
-    }catch (BusinessLogicError &e){
-        LOG(WARNING) <<"BusinessLogic [" <<e.what() <<"]";
-        do_write(e.what());
-    }catch (...){
+    }else if(0 == inMsg.find(u8"exit")){
         stop();
+
+    }else if(inMsg.size() > 10) {
+        on_query(inMsg);
+
+    }else{
+        do_write(string(u8"ERROR: very short command:") + inMsg + "\n");
+        LOG(WARNING) << "very short command from client " << username() << ": '" << inMsg << '\'';
     }
 
 }
@@ -219,7 +170,7 @@ void CClientSession::on_login(const string &msg)
     VLOG(1) << "DEBUG: logged in: " << username_ << std::endl;
 
     do_write(string("login ok\n"));
-    //update_clients_changed(); // this caused bug with dead lock when restore or backup db, I didn't tested fixed it or not
+    update_clients_changed(); // this caused bug with dead lock when restore or backup db, I didn't tested fixed it or not
 }
 
 void CClientSession::on_ping()
@@ -353,16 +304,7 @@ void CClientSession::do_ask_db(string &query)
             }
         }else{
 
-            int effectedData = 0;
-            int backUpProgress = businessLogic_->getBackUpProgress();
-
-            if(backUpProgress < 0 || backUpProgress == 100){
-                effectedData =  db->Execute(query.c_str());
-            }else{
-                effectedData = businessLogic_->SaveQueryToTmpDb(query);
-                VLOG(1) <<"DEBUG: insert to tmp db while backuping. Effected data: " <<effectedData;
-            }
-
+            int effectedData =  db->Execute(query.c_str());
 
             if (effectedData < 0){
                 answer = std::string("ERROR: effected data < 0! : " + db->GetLastError());
@@ -420,159 +362,6 @@ void CClientSession::do_write(const string &msg)
 
     async_write(sock_, buffer(write_buffer_.get(), msg.size()),
                            bind(&CClientSession::on_write, shared_from_this(), _1, _2));
-}
-
-void CClientSession::do_db_backup() {
-    int backUpStatus = businessLogic_->getBackUpProgress();
-
-    //check if if backuping is executing. (!= -1). If not, send 0% and start backup
-    if(-1 == backUpStatus){
-        string startBackupMsg = "backup in progress [0%]";
-        VLOG(1) << "DEBUG: " <<startBackupMsg;
-        do_write(startBackupMsg);
-        //block this async func and make backup
-        backUpStatus = businessLogic_->backupDb(db, bakDbPath);
-    }
-
-    string msg;
-    if(-1 == backUpStatus){
-        //this will be executed after backup is finished with error
-        msg = "ERROR: db was not backuped: " + db->GetLastError();
-        LOG(WARNING) << msg;
-    }else if(100 == backUpStatus){
-        businessLogic_->setTimeoutOnNextBackupCmd(io_context_, newBackupTimeout);
-
-        // start executing query from tmp db in background
-        auto self = shared_from_this();
-        io_context_.post([self, this](){ //async call
-            try {
-                    businessLogic_->SyncDbWithTmp(dbPath, [=](size_t ms) {
-                        // Construct a timer without setting an expiry time.
-                        deadline_timer timer(io_context_);
-                        // Set an expiry time relative to now.
-                        timer.expires_from_now(boost::posix_time::millisec(ms));
-                        // Wait for the timer to expire.
-                        timer.wait();
-                    });
-            }catch (BusinessLogicError &e){
-                LOG(WARNING) <<"Sync Error [" <<e.what() <<"]";
-            }
-        });
-
-        msg = "backup db complete [100%]";
-        LOG(INFO) << "DEBUG: " <<msg;
-    }else if(backUpStatus > 0 && backUpStatus < 100){
-        msg = "backup in progress [" + std::to_string(businessLogic_->getBackUpProgress()) + "%]";
-        //VLOG(1) << "DEBUG: " <<msg;
-    }
-
-    do_write(msg);
-}
-
-void CClientSession::do_ask_db_backup_progress() {
-    string msg;
-    int progress = businessLogic_->getBackUpProgress();
-
-    if(progress == -1){
-        msg = "backup not started";
-    }else{
-        msg = "backup in progress [" + std::to_string(progress) + "%]";
-    }
-
-    VLOG(1) << "DEBUG: " <<msg;
-    do_write(msg);
-}
-
-void CClientSession::on_backup_chunk_write(const CClientSession::error_code &err, size_t bytes) {
-    //VLOG(1) <<"sanded bytes: " <<bytes << " delay: " <<(boost::posix_time::microsec_clock::local_time() - last_ping_).total_milliseconds();
-    if( err ){
-        LOG(WARNING) <<"ERROR: can't send file to client: " <<err;
-        do_write("ERROR: " + err.message());
-        return;
-    }
-
-    post_check_ping();
-
-    do_backup_chunk_write();
-}
-
-void CClientSession::do_backup_chunk_write() {
-    if( ! started() )
-        return;
-
-    if( ! backupReader_.nextChunk() ){
-        backupReader_.close();
-        do_read();
-        return;
-    }
-
-    async_write(sock_, buffer(backupReader_.getCurrentChunk(), backupReader_.getCurrentChunkSize()),
-                           bind(&CClientSession::on_backup_chunk_write, shared_from_this(), _1, _2));
-}
-
-void CClientSession::do_get_db_backup() {
-
-    if(! businessLogic_->isBackupExist(bakDbPath)){
-        LOG(INFO) <<"Backup doesn't exist";
-        do_write("NONE : Backup doesn't exist, you can send 'backup_db' to create new and 'get_db_backup_progress' to check backup progress!");
-        return;
-    }
-
-    if(! backupReader_.open(bakDbPath)){
-        string errMsg("can't open backup file [" + bakDbPath + "]");
-        LOG(WARNING) << errMsg;
-        do_write("ERROR: " + errMsg);
-        return;
-    }
-
-    if(backupReader_.isEOF()){ //file is empty. Send empty string
-        do_write("");
-        return;
-    }
-
-    do_backup_chunk_write();
-}
-
-void CClientSession::do_restore_db() {
-    string msg;
-    int progress = businessLogic_->getBackUpProgress();
-
-    if(progress > -1 && progress < 100){
-        msg = "Restore can't be executed. Backup in progress [" + std::to_string(progress) + "%]";
-        LOG(INFO) <<msg;
-    }else{
-        if(! businessLogic_->prepareBeforeRestore(dbPath, restoreDbPath)){
-            msg = "Restore can't be executed. System error or restore db corrupted";
-        }else{
-            auto self = shared_from_this();
-            cli_ptr_vector clients_copy;
-            {
-                boost::recursive_mutex::scoped_lock lk(clients_cs);
-                clients_copy = clients;
-            }
-
-            // stop all clients except current
-            for(const auto &it : clients_copy ){
-                if(it != self)
-                    it->stop();
-            }
-
-            io_context_.post([self, this](){ //async call
-                // wait, before all existing call to db will be complete, and clients go away
-                deadline_timer timer(io_context_);
-                timer.expires_from_now(boost::posix_time::millisec(5000));
-                timer.wait();
-
-                businessLogic_->restoreDbFromFile(dbPath, restoreDbPath);
-                stop(); // stopping current client
-                return;
-            });
-
-            msg = "Restore db in progress [0%]";
-        }
-    }
-
-    do_write(msg);
 }
 
 void update_clients_changed()

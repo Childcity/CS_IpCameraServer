@@ -12,9 +12,6 @@
 #endif // !ZeroMemory
 
 extern std::string dbPath;
-extern std::string bakDbPath;
-extern std::string restoreDbPath;
-extern size_t newBackupTimeout;
 extern size_t sqlWaitTime;
 extern size_t sqlCountOfAttempts;
 extern long blockOrClusterSize;

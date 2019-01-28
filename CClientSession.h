@@ -75,8 +75,6 @@ private:
 
 	void on_write(const error_code &err, size_t bytes);
 
-    void on_backup_chunk_write(const CClientSession::error_code &err, size_t bytes);
-
 		void do_get_fibo(const size_t &n);
 
 		void on_fibo(const string &msg);
@@ -89,21 +87,13 @@ private:
 
 	void do_write(const string &msg);
 
-	void do_backup_chunk_write();
-
-	void do_db_backup();
-
-	void do_ask_db_backup_progress();
-
-	void do_get_db_backup();
-
 private:
 
 	mutable boost::recursive_mutex cs_;
 	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 500*1024 };
 	const size_t maxTimeout_;
     //const char endOfMsg[0] = {};
-	const size_t sizeEndOfMsg = 1;
+	const size_t sizeEndOfMsg = 0;
 	scoped_array<char> read_buffer_;
 	scoped_array<char>  write_buffer_;
 	io_context &io_context_;
@@ -121,9 +111,6 @@ private:
 	const char separator = '|';
 
     businessLogic_ptr businessLogic_;
-    CBinaryFileReader backupReader_;
-
-    void do_restore_db();
 };
 
 #endif //CS_MINISQLITESERVER_CCLIENTSESSION_H

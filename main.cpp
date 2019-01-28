@@ -17,9 +17,6 @@
 
 //Global variable declared in main.h
 std::string dbPath;
-std::string bakDbPath;
-std::string restoreDbPath;
-size_t newBackupTimeout;
 size_t sqlWaitTime;
 size_t sqlCountOfAttempts;
 long blockOrClusterSize;
@@ -67,9 +64,6 @@ int main(int argc, char *argv[])
         TestSqlite3Settings(&cfg);
 
         dbPath = cfg.keyBindings.dbPath;
-        bakDbPath = cfg.keyBindings.bakDbPath;
-		restoreDbPath = cfg.keyBindings.restoreDbPath;
-		newBackupTimeout = static_cast<size_t>(cfg.keyBindings.newBackupTimeoutMillisec);
         blockOrClusterSize = cfg.keyBindings.blockOrClusterSize;
         sqlWaitTime = static_cast<size_t>(cfg.keyBindings.waitTimeMillisec);
         sqlCountOfAttempts = static_cast<size_t>(cfg.keyBindings.countOfEttempts);
@@ -97,21 +91,11 @@ void TestSqlite3Settings(CConfig *cfg){
 
     VLOG(1) <<"DEBUG: sqlite version: " <<sqlite3_version;
     LOG(INFO) <<"Using db: " <<cfg->keyBindings.dbPath;
-    LOG(INFO) <<"Using db backup file: " <<cfg->keyBindings.bakDbPath;
-
-	std::ofstream testFile(cfg->keyBindings.bakDbPath, std::ios::in |std::ios::out | std::ios::app | std::ios::binary);
-	LOG_IF(FATAL, ! testFile.is_open()) <<"Can't open backup file! (Check permission)";
-	testFile.close();
 
     LOG_IF(FATAL, sqlite3_threadsafe() == 0 ) <<"Sqlite compiled without 'threadsafe' mode";
 
     CSQLiteDB::ptr db = CSQLiteDB::new_(cfg->keyBindings.dbPath);
 	LOG_IF(FATAL, ! db->OpenConnection()) <<"Can't connect to '" << cfg->keyBindings.dbPath << "', check permission or file does not exist. System error: " << db->GetLastError();
-
-	// check tmp db or create new
-	CBusinessLogic::CreateOrUseOldTmpDb();
-
-    LOG(INFO) <<"Connection to db and tmp db: Ok";
 
 
 	VLOG(1) <<"DEBUG: integrity checking...";
@@ -121,11 +105,6 @@ void TestSqlite3Settings(CConfig *cfg){
 	}else{
         LOG(INFO) <<"Integrity check: OK";
 	}
-
-
-	VLOG(1) <<"DEBUG: synchronization main db with tmp db...";
-	CBusinessLogic::SyncDbWithTmp(cfg->keyBindings.dbPath, [=](size_t ms) { (void)ms; /*here we shouldn't sleep, just skip it*/ });
-    LOG(INFO) <<"Synchronization: OK";
 }
 
 void SafeExit()
