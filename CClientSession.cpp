@@ -114,22 +114,18 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
     // process the msg
 
     // we must make copy of read_buffer_, for quick unlock cs_ mutex
-    size_t len = strlen(read_buffer_.get()) - sizeEndOfMsg;
+    size_t len = strlen(read_buffer_.get());
 
-    if((len < 7)||(len > MAX_READ_BUFFER))
-        len = 1;
 
-    string inMsg(len, char(0));
-    size_t cleanMsgSize = 0;
+    string inMsg;
     {
         boost::recursive_mutex::scoped_lock lk(cs_);
-        for (size_t i = 0; i < inMsg.size(); ++i) {
+        for (size_t i = 0; i < len; ++i) {
             //continue if read_buffer_[i] == one of (\r, \n, NULL)
             if((read_buffer_[i] != char(0)) && (read_buffer_[i] != char(13))  && (read_buffer_[i] != char(10)))
-                inMsg[cleanMsgSize++] = read_buffer_[i];
+                inMsg += read_buffer_[i];
         }
     }
-    inMsg.resize(cleanMsgSize);
 
 
     VLOG(1) << "DEBUG: received msg !!!" << inMsg << "!!!\nDEBUG: received bytes from user '" <<username() <<"' bytes: " << bytes;

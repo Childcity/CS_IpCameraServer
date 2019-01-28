@@ -93,7 +93,7 @@ private:
 	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 500*1024 };
 	const size_t maxTimeout_;
     //const char endOfMsg[0] = {};
-	const size_t sizeEndOfMsg = 0;
+	//const size_t sizeEndOfMsg = 0;
 	scoped_array<char> read_buffer_;
 	scoped_array<char>  write_buffer_;
 	io_context &io_context_;
