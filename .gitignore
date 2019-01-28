@@ -5,8 +5,8 @@ tests*
 async.h
 CRunAsync*
 
-./working_exe/logs/
-./working_exe/CS_MiniSQLiteServer.ini
+/working_exe/logs/
+/working_exe/CS_MiniSQLiteServer.ini
 /working_exe/db.db3
 
 /x64
