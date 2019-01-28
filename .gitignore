@@ -5,11 +5,7 @@ tests*
 async.h
 CRunAsync*
 
-.vs/*
-working_exe/logs/*
-Debug/*
-Release/*
-x64/*
+working_exe/logs/
 /working_exe/CS_MiniSQLiteServer.ini
 /working_exe/db.db3
 
@@ -32,8 +28,8 @@ x64/*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-x64/
-x86/
+./x64/
+./x86/
 bld/
 [Bb]in/
 [Oo]bj/
