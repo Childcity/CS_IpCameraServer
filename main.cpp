@@ -94,6 +94,9 @@ void TestSqlite3Settings(CConfig *cfg){
 
     LOG_IF(FATAL, sqlite3_threadsafe() == 0 ) <<"Sqlite compiled without 'threadsafe' mode";
 
+	// throws errors!
+	CBusinessLogic::CreateOrUseDb(cfg->keyBindings.dbPath);
+
     CSQLiteDB::ptr db = CSQLiteDB::new_(cfg->keyBindings.dbPath);
 	LOG_IF(FATAL, ! db->OpenConnection()) <<"Can't connect to '" << cfg->keyBindings.dbPath << "', check permission or file does not exist. System error: " << db->GetLastError();
 

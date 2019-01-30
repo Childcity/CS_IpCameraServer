@@ -147,7 +147,7 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
         stop();
 
     }else if(inMsg.size() > 10) {
-        on_query(inMsg);
+        on_ipcam_event(inMsg);
 
     }else{
         do_write(string(u8"ERROR: very short command:") + inMsg + "\n");
@@ -249,79 +249,41 @@ void CClientSession::on_fibo(const string &msg)
 
 
 
-void CClientSession::do_ask_db(string &query)
+void CClientSession::do_process_ipcam_event(const string &ipcamEvent)
 {
     if( ! started() )
         return;
 
     boost::recursive_mutex::scoped_lock bd_;
 
-    string answer;
-
     if(! db->isConnected()){
         if(! db->OpenConnection()){
-            answer = "ERROR: " + db->GetLastError();
-        }
-    }else{
-        //check if query is 'select' or 'insert/update...'
-        if((query.find("select") < 10) || (query.find("SELECT") < 10)){
-            //Get Data From DB
-            IResult *res = db->ExecuteSelect(query.c_str());
-
-            if (nullptr == res){
-                answer = "ERROR: undefined";
-                LOG(WARNING) << answer;
-            } else {
-                //Colomn Name
-                /*for (int i = 0; i < db->GetColumnCount(); ++i) {
-                        const char *tmpRes = res->NextColomnName(i);
-                        answer += (tmpRes ? std::move(string(tmpRes)): "NULL")+ separator;
-                }
-                answer += '\n';*/
-
-                //Data
-                while (res->Next()) {
-                    for (int i = 0; i < res->GetColumnCount(); i++){
-                        const char *tmpRes = res->ColomnData(i);
-                        answer += (tmpRes ? std::move(string(tmpRes)): "None")+ separator;
-
-                    }
-                    answer.resize(answer.size() - 1);
-                    answer += '\n';
-                }
-                //release Result Data
-                res->ReleaseStatement();
-
-                if(answer.empty()){
-                    answer = "NONE";
-                }else{
-                    answer.erase(answer.size() - 1);
-                }
-            }
-        }else{
-
-            int effectedData =  db->Execute(query.c_str());
-
-            if (effectedData < 0){
-                answer = std::string("ERROR: effected data < 0! : " + db->GetLastError());
-                LOG(WARNING) << answer;
-            }else{
-                //answer = "OK: count of effected data(" + std::to_string(effectedData) +")";
-                answer = "NONE";
-            }
+            LOG(WARNING) << "ERROR: " + db->GetLastError();
+            do_read();
+            return;
         }
     }
 
-    //VLOG(1) <<(int)answer[0]<<(int)answer[1];
-    do_write(answer);
+    // parse ev
+
+
+
+    // save to db ev
+
+    int effectedData =  0;//db->Execute(query.c_str());
+
+    if (effectedData < 0){
+        LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
+    }
+
 }
 
-void CClientSession::on_query(const string &msg)
+void CClientSession::on_ipcam_event(const string &ipcamEvent)
 {
     if( !started() )
         return;
 
-    io_context_.post(bind(&CClientSession::do_ask_db, shared_from_this(), msg));
+    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), ipcamEvent));
 
     do_read();
 }

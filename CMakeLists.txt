@@ -8,6 +8,9 @@ link_directories(${CMAKE_SOURCE_DIR}/libs/boost)
 find_package(glog REQUIRED)
 set(USED_LIBS boost_system boost_regex boost_thread glog::glog)
 
+#set(Boost_USE_DEBUG_LIBS         OFF) # ignore debug libs and
+#set(Boost_USE_RELEASE_LIBS       ON)  # only find release libs
+#set(Boost_USE_MULTITHREADED      ON)
 
 set(CMAKE_CXX_FLAGS "-pthread -std=c++14 -Wall -Wno-reorder")
 
@@ -16,13 +19,13 @@ set(SOURCES
         include/sqlite3/sqlite3.c
         include/INIReaderWriter/ini.c
         include/INIReaderWriter/INIReader.cpp
-        include/INIReaderWriter/INIWriter.hpp CBusinessLogic.cpp CBusinessLogic.h CBinaryFileReader.cpp CBinaryFileReader.h)
+        include/INIReaderWriter/INIWriter.hpp CBusinessLogic.cpp CBusinessLogic.h CJsonParser.cpp CJsonParser.h)
 
 set(HEADERS
         main.h CConfig.h CServer.h CClientSession.h CSQLiteDB.h
         include/sqlite3/sqlite3.h
         include/INIReaderWriter/ini.h
-        include/INIReaderWriter/INIReader.h CBusinessLogic.cpp CBusinessLogic.h CBinaryFileReader.cpp CBinaryFileReader.h)
+        include/INIReaderWriter/INIReader.h CBusinessLogic.cpp CBusinessLogic.h CJsonParser.cpp CJsonParser.h)
 
 add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_link_libraries (${PROJECT_NAME} ${USED_LIBS} ${CMAKE_DL_LIBS})

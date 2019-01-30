@@ -6,7 +6,7 @@
 #include "CSQLiteDB.h"
 #include "glog/logging.h"
 #include "CBusinessLogic.h"
-#include "CBinaryFileReader.h"
+#include "CJsonParser.h"
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -79,9 +79,9 @@ private:
 
 		void on_fibo(const string &msg);
 
-	void do_ask_db(string &query);
+	void do_process_ipcam_event(const string &query);
 
-	void on_query(const string &msg);
+	void on_ipcam_event(const string &ipcamEvent);
 
 	void do_read();
 
