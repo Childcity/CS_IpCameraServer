@@ -254,24 +254,27 @@ void CClientSession::do_process_ipcam_event(const string &msg)
     if( ! started() )
         return;
 
-    boost::recursive_mutex::scoped_lock bd_;
+	int effectedData = 0;
+	SIpCameraEvent ipcamEvent;
 
-    if(! db->isConnected()){
-        if(! db->OpenConnection()){
-            LOG(WARNING) << "ERROR: " + db->GetLastError();
-            do_read();
-            return;
-        }
-    }
+	{
+		boost::recursive_mutex::scoped_lock bd_;
 
-    // parse ev
-	CJsonParser parser;
-	SIpCameraEvent ipcamEvent(parser.parseIpCameraEvent(msg));
+		if (!db->isConnected()) {
+			if (!db->OpenConnection()) {
+				LOG(WARNING) << "ERROR: " + db->GetLastError();
+				do_read();
+				return;
+			}
+		}
 
-    // save to db 
-    int effectedData =  db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent));
+		// parse ev
+		CJsonParser parser;
+		ipcamEvent = parser.parseIpCameraEvent(msg);
 
-	bd_.unlock();
+		// save to db 
+		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent));
+	}
 
 	businessLogic_->setLastIpCamEvent(ipcamEvent);
 

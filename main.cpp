@@ -27,37 +27,38 @@ int main(int argc, char *argv[])
 {
 	static CConfig cfg(argv[0]);
 
-	if( ! running_from_service )
-	{
-		cfg.Load();
-		LOG_IF(FATAL, CConfig::Status::ERROR == cfg.getStatus()) <<"Check settings file and RESTART" ;
-
-		running_from_service = 1;
-#ifdef WIN32
-		if( service_register(argc, argv, (LPSTR)cfg.keyBindings.serviceName.c_str()) )
-		{
-			VLOG(1) << "DEBUG: We've been called as a service. Register service and exit this thread.";
-			/* We've been called as a service. Register service
-			* and exit this thread. main() would be called from
-			* service.c next time.
-			*
-			* Note that if service_register() succeedes it does
-			* not return until the service is stopped.
-			* That is why we should set running_from_service
-			* before calling service_register and unset it
-			* afterwards.
-			*/
-			return 0;
-		}
-#endif // WIN32
-
-		LOG(INFO) <<"Started as console application";
-
-		running_from_service = 0;
-	}
-
 	try
 	{
+
+		if( ! running_from_service )
+		{
+			cfg.Load();
+			LOG_IF(FATAL, CConfig::Status::ERROR == cfg.getStatus()) <<"Check settings file and RESTART" ;
+
+			running_from_service = 1;
+#ifdef WIN32
+			if( service_register(argc, argv, (LPSTR)cfg.keyBindings.serviceName.c_str()) )
+			{
+				VLOG(1) << "DEBUG: We've been called as a service. Register service and exit this thread.";
+				/* We've been called as a service. Register service
+				* and exit this thread. main() would be called from
+				* service.c next time.
+				*
+				* Note that if service_register() succeedes it does
+				* not return until the service is stopped.
+				* That is why we should set running_from_service
+				* before calling service_register and unset it
+				* afterwards.
+				*/
+				return 0;
+			}
+#endif // WIN32
+
+			LOG(INFO) <<"Started as console application";
+
+			running_from_service = 0;
+		}
+
 		boost::asio::io_context io_context;
 
 		// try connect to db and check sqlite settings

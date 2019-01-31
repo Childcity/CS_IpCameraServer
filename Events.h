@@ -39,12 +39,12 @@ struct SIpCameraEvent {
 	static const char *CREATE_TABLE_QUERY() {
 		return "CREATE TABLE IF NOT EXISTS ip_camera_events(\n"
 			"  packetCounter INTEGER,\n"
-			"  datetime TEXT,\n"
+			"  `datetime` TEXT,\n"
 			"  plateText BLOB,\n"
 			"  plateTextANSI TEXT,\n"
 			"  plateCountry TEXT,\n"
 			"  plateConfidence REAL,\n"
-			"  cameraId TEXT DEFAULT,\n"
+			"  cameraId TEXT,\n"
 			"  carState TEXT,\n"
 			"  geotag_lat TEXT,\n"
 			"  geotag_lon TEXT,\n"
@@ -63,7 +63,7 @@ struct SIpCameraEvent {
 	}
 	
 	static const char *INSERT_EVENT_QUERY(const SIpCameraEvent &ipCamEvent) {
-		static const string constPart("INSERT INTO ip_camera_events (packetCounter, datetime, plateText, plateTextANSI, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
+		static const string constPart("INSERT INTO ip_camera_events (packetCounter, `datetime`, plateText, plateTextANSI, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
 		"imageType, plateImageType, plateImageSize, carMoveDirection, timeProcessing, plateCoordinates, carID, GEOtarget, sensorProviderID, rawJson) ");
 		
 		return string(constPart + "VALUES "
