@@ -249,7 +249,7 @@ void CClientSession::on_fibo(const string &msg)
 
 
 
-void CClientSession::do_process_ipcam_event(const string &ipcamEvent)
+void CClientSession::do_process_ipcam_event(const string &msg)
 {
     if( ! started() )
         return;
@@ -265,12 +265,15 @@ void CClientSession::do_process_ipcam_event(const string &ipcamEvent)
     }
 
     // parse ev
+	CJsonParser parser;
+	SIpCameraEvent ipcamEvent(parser.parseIpCameraEvent(msg));
 
+    // save to db 
+    int effectedData =  db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent));
 
+	bd_.unlock();
 
-    // save to db ev
-
-    int effectedData =  0;//db->Execute(query.c_str());
+	businessLogic_->setLastIpCamEvent(ipcamEvent);
 
     if (effectedData < 0){
         LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
@@ -278,12 +281,12 @@ void CClientSession::do_process_ipcam_event(const string &ipcamEvent)
 
 }
 
-void CClientSession::on_ipcam_event(const string &ipcamEvent)
+void CClientSession::on_ipcam_event(const string &msg)
 {
     if( !started() )
         return;
 
-    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), ipcamEvent));
+    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), msg));
 
     do_read();
 }

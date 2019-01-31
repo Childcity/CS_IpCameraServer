@@ -45,10 +45,10 @@
     <ClCompile Include="Service.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CBinaryFileReader.cpp">
+    <ClCompile Include="CBusinessLogic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CBusinessLogic.cpp">
+    <ClCompile Include="Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,10 +83,10 @@
     <ClInclude Include="Service.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CBinaryFileReader.h">
+    <ClInclude Include="CBusinessLogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CBusinessLogic.h">
+    <ClInclude Include="Events.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
