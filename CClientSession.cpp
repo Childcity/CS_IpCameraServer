@@ -325,6 +325,13 @@ void CClientSession::do_write(const string &msg)
 void update_clients_changed()
 {
     cli_ptr_vector clients_copy;
+
+//    // C++17 only
+//    if(boost::recursive_mutex::scoped_lock lk(clients_cs); !clients.empty()){
+//
+//        clients_copy = clients;
+//    }
+
     {
         boost::recursive_mutex::scoped_lock lk(clients_cs);
         clients_copy = clients;

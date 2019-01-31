@@ -56,7 +56,7 @@ private:
 
 public:
 	CConfig(CConfig const&) = delete;
-	CConfig operator=(CConfig const&) = delete;
+	CConfig &operator=(CConfig const&) = delete;
 
 	const char * const SETTINGS_FILE_NAME = "CS_MiniSQLiteServer.ini";
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "main.h"
+#include "glog/logging.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -12,7 +13,11 @@ using namespace boost::property_tree;
 class CJsonParser {
     using string = std::string ;
 public:
-    struct IpCameraIvent {
+    struct IpCameraEvent {
+        IpCameraEvent() = default;
+        IpCameraEvent(const IpCameraEvent &) = default;
+        IpCameraEvent &operator=(const IpCameraEvent &) = default;
+
         long packetCounter;
         string datetime;
         string plateText;
@@ -35,17 +40,26 @@ public:
         string rowEvent;
     };
 
-    IpCameraIvent parseIpCameraEvent(const std::string &jsonEvent){
-        IpCameraIvent ipCamEvent;
-        std::stringstream strstream(jsonEvent);
+    IpCameraEvent parseIpCameraEvent(const std::string &jsonEvent){
+        IpCameraEvent ipCamEvent;
 
-        // Create an empty property tree object
-        ptree tree; tree.get("packetCounter", 0);
+        try {
+            std::stringstream strstream(jsonEvent);
 
-        // Parse the XML into the property tree.
-        json_parser::read_json(strstream, tree);
+            // Create an empty property tree object
+            ptree tree;
 
-        ipCamEvent.cameraId =
+            // Parse the json into the property tree.
+            json_parser::read_json(strstream, tree);
+
+            ipCamEvent.packetCounter = tree.get("packetCounter", -1l);
+            ipCamEvent.datetime = tree.get("datetime", std::string());
+
+        }catch (std::exception &ex){
+            LOG(WARNING) <<"ERROR (JsonParser): " <<ex.what();
+        }
+
+        return ipCamEvent;
     }
 
 

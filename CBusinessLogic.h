@@ -73,13 +73,13 @@ public:
 
         //create table for temporary query strings
         int res = tmpDb->Execute("CREATE TABLE IF NOT EXISTS ip_camera_events(\n"
-                                 "  packetCounter INTEGER,\n"
-                                 "  datetime TEXT,\n"
-                                 "  plateText BLOB,\n"
-                                 "  plateTextANSI TEXT,\n"
-                                 "  plateCountry TEXT,\n"
-                                 "  plateConfidence REAL,\n"
-                                 "  cameraId TEXT,\n"
+                                 "  packetCounter INTEGER DEFAULT NULL,\n"
+                                 "  datetime TEXT DEFAULT NULL,\n"
+                                 "  plateText BLOB DEFAULT NULL,\n"
+                                 "  plateTextANSI TEXT DEFAULT NULL,\n"
+                                 "  plateCountry TEXT DEFAULT NULL,\n"
+                                 "  plateConfidence REAL DEFAULT NULL,\n"
+                                 "  cameraId TEXT DEFAULT NULL,\n"
                                  "  carState TEXT,\n"
                                  "  geotag_lat TEXT,\n"
                                  "  geotag_lon TEXT,\n"
@@ -93,7 +93,7 @@ public:
                                  "  GEOtarget TEXT,\n"
                                  "  sensorProviderID TEXT,\n"
                                  "  rawJson TEXT,\n"
-                                 "  wroteToDbAt DATETIME DEFAULT CURRENT_TIMESTAMP\"\n"
+                                 "  wroteToDbAt DATETIME DEFAULT CURRENT_TIMESTAMP\n"
                                  ");");
 
         if(res < 0){
