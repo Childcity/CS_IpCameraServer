@@ -58,7 +58,7 @@ public:
 	CConfig(CConfig const&) = delete;
 	CConfig &operator=(CConfig const&) = delete;
 
-	const char * const SETTINGS_FILE_NAME = "CS_MiniSQLiteServer.ini";
+	const char * const SETTINGS_FILE_NAME = "CS_IpCameraServer.ini";
 
 	enum Status{ LOADED_OK = 0, ERROR = -1 };
 

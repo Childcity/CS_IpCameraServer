@@ -14,7 +14,7 @@
 	#include "Service.h" //For Windows Service
 #endif // WIN32
 
-
+#include <boost/regex.hpp>
 //Global variable declared in main.h
 std::string dbPath;
 size_t sqlWaitTime;
@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 
 			running_from_service = 0;
 		}
+
 
 		boost::asio::io_context io_context;
 

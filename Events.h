@@ -18,7 +18,6 @@ struct SIpCameraEvent {
 	string packetCounter;
     string datetime;
     string plateText;
-    string plateTextANSI;
     string plateCountry;
 	string plateConfidence;
     string cameraId;
@@ -41,7 +40,6 @@ struct SIpCameraEvent {
 			"  packetCounter INTEGER,\n"
 			"  `datetime` TEXT,\n"
 			"  plateText BLOB,\n"
-			"  plateTextANSI TEXT,\n"
 			"  plateCountry TEXT,\n"
 			"  plateConfidence REAL,\n"
 			"  cameraId TEXT,\n"
@@ -62,20 +60,20 @@ struct SIpCameraEvent {
         ");";
 	}
 	
-	static const char *INSERT_EVENT_QUERY(const SIpCameraEvent &ipCamEvent) {
-		static const string constPart("INSERT INTO ip_camera_events (packetCounter, `datetime`, plateText, plateTextANSI, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
+	static string INSERT_EVENT_QUERY(const SIpCameraEvent &ipCamEvent) {
+		static const string constPart("INSERT INTO ip_camera_events (packetCounter, `datetime`, plateText, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
 		"imageType, plateImageType, plateImageSize, carMoveDirection, timeProcessing, plateCoordinates, carID, GEOtarget, sensorProviderID, rawJson) ");
 		
 		return string(constPart + "VALUES "
 					"('" + ipCamEvent.packetCounter		+ "', '" + ipCamEvent.datetime			+ "', '" + ipCamEvent.plateText 
-				+ "', '" + ipCamEvent.plateTextANSI		+ "', '" + ipCamEvent.plateCountry		+ "', '" + ipCamEvent.plateConfidence
+				+ "', '" + ipCamEvent.plateCountry		+ "', '" + ipCamEvent.plateConfidence
 				+ "', '" + ipCamEvent.cameraId			+ "', '" + ipCamEvent.carState			+ "', '" + ipCamEvent.geotag_lat		
 				+ "', '" + ipCamEvent.geotag_lon		+ "', '" + ipCamEvent.imageType			+ "', '" + ipCamEvent.plateImageType
 				+ "', '" + ipCamEvent.plateImageSize	+ "', '" + ipCamEvent.carMoveDirection	+ "', '" + ipCamEvent.timeProcessing
 				+ "', '" + ipCamEvent.plateCoordinates	+ "', '" + ipCamEvent.carID				+ "', '" + ipCamEvent.GEOtarget
 				+ "', '" + ipCamEvent.sensorProviderID	+ "', '" + ipCamEvent.rawJson 
 				+ "');"
-			).c_str();
+			);
 	}
 };
 
@@ -98,7 +96,6 @@ public:
             ipCamEvent.packetCounter = tree.get("packetCounter", string());
             ipCamEvent.datetime = tree.get("datetime", string());
 			ipCamEvent.plateText = tree.get("plateText", string());
-			ipCamEvent.plateTextANSI = tree.get("plateTextANSI", string());
 			ipCamEvent.plateCountry = tree.get("plateCountry", string());
 			ipCamEvent.plateConfidence = tree.get("plateConfidence", string());
 			ipCamEvent.cameraId = tree.get("cameraId", string());
@@ -158,3 +155,18 @@ public:
 */
 
 #endif //CS_CEVENTS_H
+/*
+{"packetCounter":"67781","datetime":"20190123 154156000","plateText":"\u004f\u0042\u0032\u0035\u0035\u0038\u0041\u004b","plateCountry":"BGR","plateConfidence":"0.727815","cameraId":"48EA633E7912","carState":"new","geotag":{"lat":50.418114,"lon":30.476213},"imageType":"plate","plateImageType":"png","plateImageSize":"0","carMoveDirection":"in","timeProcessing":"0","plateCoordinates":[420,180,356,66],"carID":"102","GEOtarget":"Camera","sensorProviderID":"Terminal_1"}
+*/
+
+/*
+    (?:(?<number>  -?(?=[1-9]|0(?!\d))\d+(\.\d+)?([eE][+-]?\d+)?){0}
+    (?<boolean> true | false | null ){0}
+    (?<string>  " (?>[^"\\\\]* | \\\\ ["\\\\bfnrt\/] | \\\\ u [0-9a-f]{4} )* " ){0}
+    (?<array>   \[ (?> \g<json> (?: , \g<json> )* )? \s* \] ){0}
+    (?<pair>    \s* \g<string> \s* : \g<json> ){0}
+    (?<object>  \{ (?> \g<pair> (?: , \g<pair> )* )? \s* \} ){0}
+    (?<json>    \s* (?> \g<number> | \g<boolean> | \g<string> | \g<array> | \g<object> ) \s* ){0}
+    )
+    \A \g<json> \Z
+*/

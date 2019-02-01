@@ -251,8 +251,9 @@ void CClientSession::on_fibo(const string &msg)
 
 void CClientSession::do_process_ipcam_event(const string &msg)
 {
-    if( ! started() )
+    if( ! started() ){
         return;
+    }
 
 	int effectedData = 0;
 	SIpCameraEvent ipcamEvent;
@@ -272,8 +273,8 @@ void CClientSession::do_process_ipcam_event(const string &msg)
 		CJsonParser parser;
 		ipcamEvent = parser.parseIpCameraEvent(msg);
 
-		// save to db 
-		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent));
+		// save to db
+		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
 	}
 
 	businessLogic_->setLastIpCamEvent(ipcamEvent);
