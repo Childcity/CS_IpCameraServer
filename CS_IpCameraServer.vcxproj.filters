@@ -21,9 +21,6 @@
     <ClCompile Include="CConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CRunAsync.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,9 +54,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CConfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CRunAsync.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CServer.h">

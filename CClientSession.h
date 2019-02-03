@@ -17,6 +17,7 @@
 #include <string>
 #include <algorithm>
 #include <utility>
+#include <map>
 
 using namespace boost::asio;
 using namespace boost::posix_time;
@@ -63,7 +64,7 @@ public:
 private:
 	void on_read(const error_code &err, size_t bytes);
 
-	void on_login(const string &msg);
+	void on_login(const string &username);
 
 	void on_ping();
 
@@ -90,7 +91,7 @@ private:
 private:
 
 	mutable boost::recursive_mutex cs_;
-	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 500*1024 };
+	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 1*1024 };
 	const size_t maxTimeout_;
     //const char endOfMsg[0] = {};
 	//const size_t sizeEndOfMsg = 0;

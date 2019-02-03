@@ -5,6 +5,8 @@
 #include "main.h"
 #include "glog/logging.h"
 
+#include <chrono>
+#include <map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -79,40 +81,68 @@ struct SIpCameraEvent {
 
 class CJsonParser {
     using string = std::string;
+	using params_map = std::map<string, pt::ptree>;
 public:
+	
+	explicit CJsonParser(const std::string &rawData)
+		: rawData_(rawData)
+		{};
 
-	SIpCameraEvent parseIpCameraEvent(const std::string &jsonEvent){
+	explicit CJsonParser()
+		: CJsonParser(string())
+	{};
+
+	CJsonParser(const CJsonParser &) = default;
+	CJsonParser &operator=(const CJsonParser &) = default;
+
+	// throws exceptions!!!
+	void validateData() {
+		std::stringstream strstream(rawData_);
+		// Parse the json into the property tree.
+		pt::json_parser::read_json(strstream, tree_);
+	}
+
+	// throws exceptions!!!
+	string parseMessage() const {
+		return tree_.get<string>("params.message");
+	}
+
+	// no throw
+	string parseCommand() const noexcept {
+		return tree_.get("command", string());
+	}
+	
+	// no throw
+	bool isIpCameraEvent() const noexcept {
+		// if plateText is empty or plateConfidence is empty -> we think, that it isn't event from ip camera
+		return (! tree_.get("plateText", string()).empty()) 
+					&& (! tree_.get("plateConfidence", string()).empty());
+	}
+
+	SIpCameraEvent parseIpCameraEvent() noexcept {
 		SIpCameraEvent ipCamEvent;
-
+			
         try {
-            std::stringstream strstream(jsonEvent);
-
-            // Create an empty property tree object
-			pt::ptree tree;
-
-            // Parse the json into the property tree.
-            pt::json_parser::read_json(strstream, tree);
-
-            ipCamEvent.packetCounter = tree.get("packetCounter", string());
-            ipCamEvent.datetime = tree.get("datetime", string());
-			ipCamEvent.plateText = tree.get("plateText", string());
-			ipCamEvent.plateCountry = tree.get("plateCountry", string());
-			ipCamEvent.plateConfidence = tree.get("plateConfidence", string());
-			ipCamEvent.cameraId = tree.get("cameraId", string());
-			ipCamEvent.carState = tree.get("carState", string());
-			ipCamEvent.geotag_lat = tree.get("geotag.lat", string());
-			ipCamEvent.geotag_lon = tree.get("geotag.lon", string());
-			ipCamEvent.imageType = tree.get("imageType", string());
-			ipCamEvent.plateImageType = tree.get("plateImageType", string());
-			ipCamEvent.plateImageSize = tree.get("plateImageSize", string());
-			ipCamEvent.carMoveDirection = tree.get("carMoveDirection", string());
-			ipCamEvent.timeProcessing = tree.get("timeProcessing", string());
-			ipCamEvent.plateCoordinates = tree.get("plateCoordinates", string());
-			ipCamEvent.carID = tree.get("carID", string());
-			ipCamEvent.GEOtarget = tree.get("GEOtarget", string());
-			ipCamEvent.sensorProviderID = tree.get("sensorProviderID", string());
-			ipCamEvent.rawJson = jsonEvent;
-
+            ipCamEvent.packetCounter = tree_.get("packetCounter", string());
+            ipCamEvent.datetime = tree_.get("datetime", string());
+			ipCamEvent.plateText = tree_.get("plateText", string());
+			ipCamEvent.plateCountry = tree_.get("plateCountry", string());
+			ipCamEvent.plateConfidence = tree_.get("plateConfidence", string());
+			ipCamEvent.cameraId = tree_.get("cameraId", string());
+			ipCamEvent.carState = tree_.get("carState", string());
+			ipCamEvent.geotag_lat = tree_.get("geotag.lat", string());
+			ipCamEvent.geotag_lon = tree_.get("geotag.lon", string());
+			ipCamEvent.imageType = tree_.get("imageType", string());
+			ipCamEvent.plateImageType = tree_.get("plateImageType", string());
+			ipCamEvent.plateImageSize = tree_.get("plateImageSize", string());
+			ipCamEvent.carMoveDirection = tree_.get("carMoveDirection", string());
+			ipCamEvent.timeProcessing = tree_.get("timeProcessing", string());
+			ipCamEvent.plateCoordinates = tree_.get("plateCoordinates", string());
+			ipCamEvent.carID = tree_.get("carID", string());
+			ipCamEvent.GEOtarget = tree_.get("GEOtarget", string());
+			ipCamEvent.sensorProviderID = tree_.get("sensorProviderID", string());
+			ipCamEvent.rawJson = rawData_;
+			
         } catch (std::exception &ex){
             LOG(WARNING) <<"ERROR (JsonParser): " <<ex.what();
         }
@@ -120,7 +150,51 @@ public:
         return ipCamEvent;
     }
 
+	string buildAnswer(bool status, const string &command, const string &message
+					, params_map otherParams = params_map()) const {
+		// Create an empty property tree object.
+		pt::ptree serverAnswerTree;
 
+		std::time_t t = std::time(nullptr);   // get time now
+		std::tm *now = std::localtime(&t);
+
+		std::stringstream strStream;
+		strStream << std::put_time(now, "%Y-%m-%d %H:%M:%S");
+
+		unsigned __int64 timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now().time_since_epoch()
+			).count();
+		
+		// Put the simple values into the tree. 
+		serverAnswerTree.put("command", command);
+		if(! message.empty())
+			serverAnswerTree.put("params.message", message);
+		serverAnswerTree.put("params.status", status ? "ok" : "error");
+
+		for (const auto &param : otherParams) {
+			if((! param.first.empty()) && (! param.second.empty()))
+				serverAnswerTree.put_child("params."+param.first, param.second);
+		}
+
+		serverAnswerTree.put("timestamp", timestamp);
+		serverAnswerTree.put("server_datetime", strStream.str());
+
+		// Write property tree to stream file
+		strStream.str(string());
+		pt::write_json(strStream, serverAnswerTree, true); // true to make pretty json
+
+		return strStream.str();
+	}
+
+	static string BuildAnswer(bool status, const string &command, const string &message
+				, params_map otherParams = params_map()) {
+		CJsonParser parser;
+		return parser.buildAnswer(status, command, message, otherParams);
+	}
+
+private:
+	pt::ptree tree_;
+	const string rawData_;
 };
 
 /* Example of event:

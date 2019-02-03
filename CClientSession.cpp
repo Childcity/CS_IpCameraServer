@@ -104,7 +104,7 @@ void CClientSession::set_clients_changed()
 
 void CClientSession::on_read(const error_code &err, size_t bytes)
 {
-    if( err )
+    if( err || (bytes > MAX_READ_BUFFER))
         stop();
 
     if( !started() )
@@ -115,6 +115,7 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 
     // we must make copy of read_buffer_, for quick unlock cs_ mutex
     size_t len = strlen(read_buffer_.get());
+
 
 
     string inMsg;
@@ -131,48 +132,105 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
     VLOG(1) << "DEBUG: received msg !!!" << inMsg << "!!!\nDEBUG: received bytes from user '" <<username() <<"' bytes: " << bytes;
             //<< " delay: " <<(boost::posix_time::microsec_clock::local_time() - last_ping_).total_milliseconds() <<"ms";
 
-    if(0 == inMsg.find(u8"login ")){
-        on_login(inMsg);
+	/*
+		Structure of command to server:
+		{
+			"command": "get_last_event",
+			"params": {
+					"message": ""
+				}
+		}
 
-    }else if(0 == inMsg.find(u8"ping")){
-        on_ping();
+		Structure of answer from server:
+			If positive:
+				{
+					"command": "get_last_event",
+					"params": {
+							"status": "ok"
+						}
+					"timestamp": 123455234, // in milliseconds!
+					"server_datatime": "YYYY-MM-DD HH:MM:SS"
+				}
+			If negative (error occure):
+				{
+					"command": "get_last_event",
+					"params": {
+							"status": "error",
+							"message": "Parser error"
+						}
+					"timestamp": 123455234,
+					"server_datetime": ""
+				}
+	*/
 
-    }else if(0 == inMsg.find(u8"who")){
-        on_clients();
+	CJsonParser parser(inMsg);
 
-    }else if(0 == inMsg.find(u8"fibo ")){
-        on_fibo(inMsg);
+	try {
+		parser.validateData();
 
-    }else if(0 == inMsg.find(u8"exit")){
-        stop();
+		string serverCommand(parser.parseCommand());
 
-    }else if(inMsg.size() > 10) {
-        on_ipcam_event(inMsg);
+		if (serverCommand.empty()) {
+			// check if it is ip camera event
+			if (parser.isIpCameraEvent()) {
+				on_ipcam_event(inMsg);
+			} else {
+				throw std::invalid_argument("ERROR: unexpected structure");
+			}
+		}else if(serverCommand == "get_last_event"){
+	
 
-    }else{
-        do_write(string(u8"ERROR: very short command:") + inMsg + "\n");
-        LOG(WARNING) << "very short command from client " << username() << ": '" << inMsg << '\'';
-    }
+		}else if(serverCommand == "login"){
+			on_login(parser.parseMessage());
+
+		}else if(serverCommand == "ping"){
+			on_ping();
+
+		}else if(serverCommand == "who"){
+			on_clients();
+	
+		}else if(serverCommand == "fibo"){
+			on_fibo(parser.parseMessage());
+	
+		}else if(serverCommand == "exit"){
+			stop();
+		}
+
+	} catch (std::exception &ex) {
+		string errmsg(string(u8"ERROR: unexpected data: ") + ex.what());
+		LOG(WARNING) <<errmsg;
+		do_write(parser.buildAnswer(false, "", errmsg));
+		return;
+	}
 
 }
 
-void CClientSession::on_login(const string &msg)
+void CClientSession::on_login(const string &username)
 {
-    boost::recursive_mutex::scoped_lock lk(cs_);
-    std::istringstream in(msg);
+	{
+		boost::recursive_mutex::scoped_lock lk(cs_);
+		username_ = username;
 
-    in >> username_ >> username_;
+		VLOG(1) << "DEBUG: logged in: " << username_ << std::endl;
+	}
 
-    VLOG(1) << "DEBUG: logged in: " << username_ << std::endl;
+    do_write(CJsonParser::BuildAnswer(true, "login", "login OK"));
 
-    do_write(string("login ok\n"));
     update_clients_changed(); // this caused bug with dead lock when restore or backup db, I didn't tested fixed it or not
 }
 
 void CClientSession::on_ping()
 {
-    boost::recursive_mutex::scoped_lock lk(cs_);
-    do_write(clients_changed_ ? string("ping client_list_changed\n") : string(u8"ping OK\n"));
+	bool clients_changed;
+
+	{
+		boost::recursive_mutex::scoped_lock lk(cs_);
+		clients_changed = clients_changed_;
+	}
+
+	string message = clients_changed ? string("client_list_changed") : string("");
+
+    do_write(CJsonParser::BuildAnswer(true, "ping", message));
 
     // we have notified client, that clients list was changed yet,
     // so clients_changed_ should be false
@@ -187,12 +245,19 @@ void CClientSession::on_clients()
         clients_copy = clients;
     }
 
-    string msg;
+	pt::ptree clients;
 
-    for(const auto &it : clients_copy )
-        msg += it->username() + " ";
+	for (const auto &it : clients_copy) {
+		pt::ptree element;
+		element.put_value(it->username());
+		clients.push_back(std::make_pair("", element));
+	}
+	
+	std::map<string, pt::ptree> params;
+	params["clients"] = clients;
 
-    do_write(string("clients: " + msg + "\n"));
+	VLOG(1) << CJsonParser::BuildAnswer(true, "who", "", params);
+    do_write(CJsonParser::BuildAnswer(true, "who", "", params));
 }
 
 void CClientSession::on_check_ping()
@@ -270,11 +335,11 @@ void CClientSession::do_process_ipcam_event(const string &msg)
 		}
 
 		// parse ev
-		CJsonParser parser;
-		ipcamEvent = parser.parseIpCameraEvent(msg);
+		//CJsonParser parser;
+		//ipcamEvent = parser.parseIpCameraEvent(msg);
 
-		// save to db
-		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
+		//// save to db
+		//effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
 	}
 
 	businessLogic_->setLastIpCamEvent(ipcamEvent);
