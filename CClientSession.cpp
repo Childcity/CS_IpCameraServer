@@ -174,12 +174,12 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 		if (serverCommand.empty()) {
 			// check if it is ip camera event
 			if (parser.isIpCameraEvent()) {
-				on_ipcam_event(inMsg);
+				on_ipcam_event(parser);
 			} else {
-				throw std::invalid_argument("ERROR: unexpected structure");
+				throw std::invalid_argument("not an event");
 			}
 		}else if(serverCommand == "get_last_event"){
-	
+            on_get_last_event();
 
 		}else if(serverCommand == "login"){
 			on_login(parser.parseMessage());
@@ -198,10 +198,14 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 		}
 
 	} catch (std::exception &ex) {
-		string errmsg(string(u8"ERROR: unexpected data: ") + ex.what());
-		LOG(WARNING) <<errmsg;
-		do_write(parser.buildAnswer(false, "", errmsg));
-		return;
+	    if(! inMsg.empty()){
+            string errmsg(string(u8"WARNING: unexpected data: ") + ex.what());
+            LOG(WARNING) <<errmsg;
+            do_write(parser.buildAnswer(false, inMsg, errmsg));
+	    }else{
+            LOG(WARNING) <<"WARNING: received empty msg";
+            do_read();
+	    }
 	}
 
 }
@@ -282,11 +286,6 @@ void CClientSession::post_check_ping()
     timer_.async_wait(bind(&CClientSession::on_check_ping, shared_from_this()));
 }
 
-void CClientSession::on_write(const error_code &err, size_t bytes)
-{
-    do_read();
-}
-
 void CClientSession::do_get_fibo(const size_t &n)
 {
     //return n<=2 ? n: get_fibo(n-1) + get_fibo(n-2);
@@ -297,7 +296,8 @@ void CClientSession::do_get_fibo(const size_t &n)
         a = b; b = c;
     }
 
-    do_write(string("fibo: " + std::to_string(b) + "\n"));
+    // next do_write should be without do_read after write. So we put false as second param to do_write
+    do_write(CJsonParser::BuildAnswer(true, "fibo", std::to_string(b)), false);
 }
 
 void CClientSession::on_fibo(const string &number)
@@ -305,16 +305,16 @@ void CClientSession::on_fibo(const string &number)
     std::istringstream in(number);
     size_t n;
     in >> n;
-
+    VLOG(1) <<"fibo for: "<<n;
     auto self = shared_from_this();
-    io_context_.post([self, this, &n](){ do_get_fibo(n); });
+    io_context_.post([self, this, n](){ do_get_fibo(n); });
 
     do_read();
 }
 
 
 
-void CClientSession::do_process_ipcam_event(const string &msg)
+void CClientSession::do_process_ipcam_event(const CJsonParser parser)
 {
     if( ! started() ){
         return;
@@ -329,43 +329,63 @@ void CClientSession::do_process_ipcam_event(const string &msg)
 		if (!db->isConnected()) {
 			if (!db->OpenConnection()) {
 				LOG(WARNING) << "ERROR: " + db->GetLastError();
-				do_read();
 				return;
 			}
 		}
 
 		// parse ev
-		//CJsonParser parser;
-		//ipcamEvent = parser.parseIpCameraEvent(msg);
+		ipcamEvent = parser.parseIpCameraEvent();
 
-		//// save to db
-		//effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
+		// save to db
+		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
 	}
 
 	businessLogic_->setLastIpCamEvent(ipcamEvent);
 
     if (effectedData < 0){
         LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
+    }else{
+        VLOG(1) << "DEBUG: seved event: " <<parser.toPrettyJson();
     }
 
 }
 
-void CClientSession::on_ipcam_event(const string &msg)
+void CClientSession::on_ipcam_event(const CJsonParser &parser)
 {
     if( !started() )
         return;
 
-    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), msg));
+    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), parser));
 
     do_read();
+}
+
+void CClientSession::on_get_last_event() {
+    try {
+        string lastEvent(businessLogic_->getLastIpCamEvent().rawJson);
+
+        if(lastEvent.empty()){
+            throw std::invalid_argument("haven't any events");
+        }
+
+        CJsonParser eventParser(lastEvent);
+        eventParser.validateData();
+
+        std::map<string, pt::ptree> params;
+        params["event"] = eventParser.getTree();
+
+        do_write(eventParser.buildAnswer(true, "get_last_event", "", params));
+    } catch (std::exception &ex) {
+        string errmsg(string(u8"ERROR: ") + ex.what());
+        LOG(WARNING) <<errmsg;
+        do_write(CJsonParser::BuildAnswer(false, "get_last_event", errmsg));
+    }
 }
 
 
 
 void CClientSession::do_read()
 {
-    //VLOG(1) << "DEBUG: do read" << std::endl;
-
     {
         boost::recursive_mutex::scoped_lock lk(cs_);
         ZeroMemory(read_buffer_.get(), sizeof(char) * MAX_READ_BUFFER);
@@ -378,7 +398,7 @@ void CClientSession::do_read()
 
 }
 
-void CClientSession::do_write(const string &msg)
+void CClientSession::do_write(const string &msg, bool read_on_write)
 {
     if( !started() )
         return;
@@ -390,8 +410,15 @@ void CClientSession::do_write(const string &msg)
 
     std::copy(msg.begin(), msg.end(), write_buffer_.get());
 
+    auto self(shared_from_this());
+
     async_write(sock_, buffer(write_buffer_.get(), msg.size()),
-                           bind(&CClientSession::on_write, shared_from_this(), _1, _2));
+                [this, self, read_on_write](error_code, size_t){
+                    if(read_on_write){
+                        do_read();
+                    }
+                });
+
 }
 
 void update_clients_changed()

@@ -6,7 +6,7 @@
 #include "CSQLiteDB.h"
 #include "glog/logging.h"
 #include "CBusinessLogic.h"
-#include "Events.h"
+#include "CJsonParser.h"
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -74,19 +74,19 @@ private:
 
 	void post_check_ping();
 
-	void on_write(const error_code &err, size_t bytes);
-
 		void do_get_fibo(const size_t &n);
 
 		void on_fibo(const string &number);
 
-	void do_process_ipcam_event(const string &msg);
+	void do_process_ipcam_event(CJsonParser parser);
 
-	void on_ipcam_event(const string &msg);
+	void on_ipcam_event(const CJsonParser &parser);
+
+	void on_get_last_event();
 
 	void do_read();
 
-	void do_write(const string &msg);
+	void do_write(const string &msg, bool read_on_write = true);
 
 private:
 

@@ -9,6 +9,7 @@
 #include <map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <utility>
 
 namespace pt = boost::property_tree;
 
@@ -83,9 +84,9 @@ class CJsonParser {
     using string = std::string;
 	using params_map = std::map<string, pt::ptree>;
 public:
-	
-	explicit CJsonParser(const std::string &rawData)
-		: rawData_(rawData)
+
+    explicit CJsonParser(std::string rawData)
+		: rawData_(std::move(rawData))
 		{};
 
 	explicit CJsonParser()
@@ -93,7 +94,17 @@ public:
 	{};
 
 	CJsonParser(const CJsonParser &) = default;
-	CJsonParser &operator=(const CJsonParser &) = default;
+    CJsonParser &operator=(const CJsonParser &) = default;
+
+    pt::ptree getTree() const {
+        return tree_;
+    }
+
+    string toPrettyJson() const {
+        std::ostringstream ostream;
+        pt::write_json(ostream, tree_, true); // true to make pretty json
+        return ostream.str();
+    }
 
 	// throws exceptions!!!
 	void validateData() {
@@ -119,7 +130,10 @@ public:
 					&& (! tree_.get("plateConfidence", string()).empty());
 	}
 
-	SIpCameraEvent parseIpCameraEvent() noexcept {
+	SIpCameraEvent parseIpCameraEvent() const noexcept {
+        VLOG_IF(1, tree_.empty()) << "Assert failed: 'tree_' is empty!";
+        VLOG_IF(1, rawData_.empty()) << "Assert failed: 'rawData_' is empty!";
+
 		SIpCameraEvent ipCamEvent;
 			
         try {
@@ -161,9 +175,13 @@ public:
 		std::stringstream strStream;
 		strStream << std::put_time(now, "%Y-%m-%d %H:%M:%S");
 
-		unsigned __int64 timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-				std::chrono::system_clock::now().time_since_epoch()
-			).count();
+		using std::chrono::duration_cast;
+        using std::chrono::milliseconds;
+        using std::chrono::system_clock;
+
+		long timestamp = duration_cast<milliseconds>(
+		                        system_clock::now().time_since_epoch()
+                        ).count();
 		
 		// Put the simple values into the tree. 
 		serverAnswerTree.put("command", command);
@@ -187,15 +205,17 @@ public:
 	}
 
 	static string BuildAnswer(bool status, const string &command, const string &message
-				, params_map otherParams = params_map()) {
+            , params_map otherParams = params_map()) {
 		CJsonParser parser;
-		return parser.buildAnswer(status, command, message, otherParams);
+		return parser.buildAnswer(status, command, message, std::move(otherParams));
 	}
 
 private:
 	pt::ptree tree_;
-	const string rawData_;
+	string rawData_;
 };
+
+#endif //CS_CEVENTS_H
 
 /* Example of event:
 {
@@ -226,12 +246,9 @@ private:
     "sensorProviderID":"Terminal_1"
 
 }
-*/
-
-#endif //CS_CEVENTS_H
-/*
 {"packetCounter":"67781","datetime":"20190123 154156000","plateText":"\u004f\u0042\u0032\u0035\u0035\u0038\u0041\u004b","plateCountry":"BGR","plateConfidence":"0.727815","cameraId":"48EA633E7912","carState":"new","geotag":{"lat":50.418114,"lon":30.476213},"imageType":"plate","plateImageType":"png","plateImageSize":"0","carMoveDirection":"in","timeProcessing":"0","plateCoordinates":[420,180,356,66],"carID":"102","GEOtarget":"Camera","sensorProviderID":"Terminal_1"}
-*/
+{"command": "who", "params": { "message": "250000000" }}
+ */
 
 /*
     (?:(?<number>  -?(?=[1-9]|0(?!\d))\d+(\.\d+)?([eE][+-]?\d+)?){0}

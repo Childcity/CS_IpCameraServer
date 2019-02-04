@@ -7,7 +7,7 @@
 #pragma once
 
 #include "main.h"
-#include "Events.h"
+#include "CJsonParser.h"
 #include "CSQLiteDB.h"
 #include "glog/logging.h"
 
