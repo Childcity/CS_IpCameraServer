@@ -57,27 +57,27 @@
 - ### Команды серверу
     - #### Структура и пример команды серверу:
         ```
-            {
-                "command": "get_last_event"
+        {
+            "command": "get_last_event"
+        }
+        {
+            "command": "login",
+            "params": {
+                "message": "user_first"
             }
-            {
-                "command": "login",
-                "params": {
-                    "message": "user_first"
-                }
+        }
+        {
+            "command": "fibo",
+            "params": {
+                "message": "25"
             }
-            {
-                "command": "fibo",
-                "params": {
-                    "message": "25"
-                }
-            }
-            {
-                "command": "exit"
-            }
-            {
-                "command": "who" // return list of all current clients
-            }
+        }
+        {
+            "command": "exit"
+        }
+        {
+            "command": "who" // return list of all current clients
+        }
         ```
     - #### Структура и пример ответа от сервера:
         - #### If positive:

@@ -253,15 +253,12 @@ void CClientSession::on_clients()
 	pt::ptree clients;
 
 	for (const auto &it : clients_copy) {
-		pt::ptree element;
-		element.put_value(it->username());
-		clients.push_back(std::make_pair("", element));
+		clients.push_back(pt::ptree::value_type("", it->username()));
 	}
 	
 	std::map<string, pt::ptree> params;
 	params["clients"] = clients;
 
-	VLOG(1) << CJsonParser::BuildAnswer(true, "who", "", params);
     do_write(CJsonParser::BuildAnswer(true, "who", "", params));
 }
 
