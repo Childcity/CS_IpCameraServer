@@ -78,7 +78,7 @@ private:
 
 		void do_get_fibo(const size_t &n);
 
-		void on_fibo(const string &msg);
+		void on_fibo(const string &number);
 
 	void do_process_ipcam_event(const string &msg);
 

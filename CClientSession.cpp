@@ -93,7 +93,8 @@ ip::tcp::socket& CClientSession::sock()
 string CClientSession::username() const
 {
     boost::recursive_mutex::scoped_lock lk(cs_);
-    return username_;
+	string usernameCopy(username_);
+    return usernameCopy;
 }
 
 void CClientSession::set_clients_changed()
@@ -299,13 +300,12 @@ void CClientSession::do_get_fibo(const size_t &n)
     do_write(string("fibo: " + std::to_string(b) + "\n"));
 }
 
-void CClientSession::on_fibo(const string &msg)
+void CClientSession::on_fibo(const string &number)
 {
-    std::istringstream in(msg);
-    in.ignore(5);
+    std::istringstream in(number);
     size_t n;
     in >> n;
-    //msg.substr()
+
     auto self = shared_from_this();
     io_context_.post([self, this, &n](){ do_get_fibo(n); });
 
