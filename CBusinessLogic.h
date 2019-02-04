@@ -7,21 +7,13 @@
 #pragma once
 
 #include "main.h"
+#include "CJsonParser.h"
 #include "CSQLiteDB.h"
-#include "CBinaryFileReader.h"
 #include "glog/logging.h"
 
 #include <memory>
 #include <string>
-#include <fstream>
-#include <utility>
-#include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <mutex>
-
-using std::string;
-using namespace boost::asio;
 
 class BusinessLogicError: public std::exception {
 public:
@@ -41,71 +33,62 @@ private:
     std::string msg_;
 };
 
-class CBusinessLogic : public boost::enable_shared_from_this<CBusinessLogic>
-        , boost::noncopyable {
+class CBusinessLogic : public boost::enable_shared_from_this<CBusinessLogic> {
 
 public:
     explicit CBusinessLogic();
 
-     //~CBusinessLogic(){/*VLOG(1) <<"DEBUG: free CBusinessLogic";*/}
+     virtual ~CBusinessLogic();
 
     CBusinessLogic(CBusinessLogic const&) = delete;
-    CBusinessLogic operator=(CBusinessLogic const&) = delete;
+    CBusinessLogic &operator=(CBusinessLogic const&) = delete;
 
-    void checkPlaceFree(const CSQLiteDB::ptr &dbPtr, const string &selectQuery_sql);
+    void setLastIpCamEvent(const SIpCameraEvent &ipCamEvent){
+        //exclusive access to data!
+        boost::unique_lock<boost::shared_mutex> lock(business_logic_mtx_);
+        lastIpCamEvent_ = ipCamEvent;
+    }
 
-    string getCachedPlaceFree() const;
-
-    void updatePlaceFree(const CSQLiteDB::ptr &dbPtr, const string &updateQuery_sql, const string &selectQuery_sql);
-
-    int backupDb(const CSQLiteDB::ptr &dbPtr, const string &backupPath);
-
-    int getBackUpProgress() const;
-
-    bool isBackupExist(const string &backupPath) const;
-
-    void resetBackUpProgress();
-
-
-    void setTimeoutOnNextBackupCmd(io_context &io_context, size_t ms);
-
-    bool prepareBeforeRestore(const string &mainDbPath, const string &restoreDbPath);
-
-    void restoreDbFromFile(const string &mainDbPath, const string &restoreDbPath);
-
-    int getRestoreProgress() const;
-
-    bool isRestoreExecuting() const;
-
-    void resetRestoreProgress();
-
-    // throws BuisnessLogicErro
-    // This method select saved querys, while backup was active, and execute theirs in main db
-    static void SyncDbWithTmp(const string &mainDbPath, const std::function<void(const size_t)> &waitFunc);
+	SIpCameraEvent getLastIpCamEvent() const {
+        //NOT exclusive access to data! Allows only read, not write!
+        boost::shared_lock<boost::shared_mutex> lock(business_logic_mtx_);
+        return lastIpCamEvent_;
+    }
 
     // throws BusinessLogicError
-    static void CreateOrUseOldTmpDb();
+    static void CreateOrUseDb(const std::string &dbPath) {
 
-    // throws BusinessLogicError
-    static int SaveQueryToTmpDb(const string &query);
+        const auto tmpDb = CSQLiteDB::new_(dbPath);
+
+        // check if tmp db exists
+        if(! tmpDb->OpenConnection(SQLITE_OPEN_FULLMUTEX|SQLITE_OPEN_READWRITE)){
+            LOG(INFO) <<"Can't connect to " <<dbPath <<": " <<tmpDb->GetLastError();
+            LOG(INFO) <<"Trying to create new " <<dbPath;
+
+            //create new db. If can't create, return;
+            if(! tmpDb->OpenConnection(SQLITE_OPEN_FULLMUTEX|SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE)){
+                LOG(WARNING) <<"BUSINESS_LOGIC: can't create or connect to " <<dbPath <<": " <<tmpDb->GetLastError();
+                throw BusinessLogicError("Database can't be opened or created. Check permissions and free place on disk");
+            }
+        }
+
+        //create table for temporary query strings
+        int res = tmpDb->Execute(SIpCameraEvent::CREATE_TABLE_QUERY());
+
+        if(res < 0){
+            string errMsg("Can't create table for ip_camera events");
+            LOG(WARNING) <<"BUSINESS_LOGIC: " <<errMsg;
+            throw BusinessLogicError(errMsg);
+        }
+
+    }
 
 private:
 
-    void selectPlaceFree(const CSQLiteDB::ptr &dbPtr, const string &selectQuery_sql);
-
-
-    static const string getTmpDbPath();
-
 private:
-    mutable boost::shared_mutex business_logic_mtx_, restore_mtx_;
-    string placeFree_;
+    mutable boost::shared_mutex business_logic_mtx_;
 
-    int backupProgress_;
-    int restoreProgress_;
-
-    std::unique_ptr<deadline_timer> backupTimer_;
-
+    SIpCameraEvent lastIpCamEvent_;
 };
-
 
 #endif //CS_MINISQLITESERVER_CBUSINESSLOGIC_H

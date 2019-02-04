@@ -93,7 +93,8 @@ ip::tcp::socket& CClientSession::sock()
 string CClientSession::username() const
 {
     boost::recursive_mutex::scoped_lock lk(cs_);
-    return username_;
+	string usernameCopy(username_);
+    return usernameCopy;
 }
 
 void CClientSession::set_clients_changed()
@@ -104,7 +105,7 @@ void CClientSession::set_clients_changed()
 
 void CClientSession::on_read(const error_code &err, size_t bytes)
 {
-    if( err )
+    if( err || (bytes > MAX_READ_BUFFER))
         stop();
 
     if( !started() )
@@ -114,69 +115,127 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
     // process the msg
 
     // we must make copy of read_buffer_, for quick unlock cs_ mutex
-    size_t len = strlen(read_buffer_.get()) - sizeEndOfMsg;
+    size_t len = strlen(read_buffer_.get());
 
-    if((len < 7)||(len > MAX_READ_BUFFER))
-        len = 1;
 
-    string inMsg(len, char(0));
-    size_t cleanMsgSize = 0;
+
+    string inMsg;
     {
         boost::recursive_mutex::scoped_lock lk(cs_);
-        for (size_t i = 0; i < inMsg.size(); ++i) {
+        for (size_t i = 0; i < len; ++i) {
             //continue if read_buffer_[i] == one of (\r, \n, NULL)
             if((read_buffer_[i] != char(0)) && (read_buffer_[i] != char(13))  && (read_buffer_[i] != char(10)))
-                inMsg[cleanMsgSize++] = read_buffer_[i];
+                inMsg += read_buffer_[i];
         }
     }
-    inMsg.resize(cleanMsgSize);
 
 
     VLOG(1) << "DEBUG: received msg !!!" << inMsg << "!!!\nDEBUG: received bytes from user '" <<username() <<"' bytes: " << bytes;
             //<< " delay: " <<(boost::posix_time::microsec_clock::local_time() - last_ping_).total_milliseconds() <<"ms";
 
-    if(0 == inMsg.find(u8"login ")){
-        on_login(inMsg);
+	/*
+		Structure of command to server:
+		{
+			"command": "get_last_event",
+			"params": {
+					"message": ""
+				}
+		}
 
-    }else if(0 == inMsg.find(u8"ping")){
-        on_ping();
+		Structure of answer from server:
+			If positive:
+				{
+					"command": "get_last_event",
+					"params": {
+							"status": "ok"
+						}
+					"timestamp": 123455234, // in milliseconds!
+					"server_datatime": "YYYY-MM-DD HH:MM:SS"
+				}
+			If negative (error occure):
+				{
+					"command": "get_last_event",
+					"params": {
+							"status": "error",
+							"message": "Parser error"
+						}
+					"timestamp": 123455234,
+					"server_datetime": ""
+				}
+	*/
 
-    }else if(0 == inMsg.find(u8"who")){
-        on_clients();
+	CJsonParser parser(inMsg);
 
-    }else if(0 == inMsg.find(u8"fibo ")){
-        on_fibo(inMsg);
+	try {
+		parser.validateData();
 
-    }else if(0 == inMsg.find(u8"exit")){
-        stop();
+		string serverCommand(parser.parseCommand());
 
-    }else if(inMsg.size() > 10) {
-        on_query(inMsg);
+		if (serverCommand.empty()) {
+			// check if it is ip camera event
+			if (parser.isIpCameraEvent()) {
+				on_ipcam_event(parser);
+			} else {
+				throw std::invalid_argument("not an event");
+			}
+		}else if(serverCommand == "get_last_event"){
+            on_get_last_event();
 
-    }else{
-        do_write(string(u8"ERROR: very short command:") + inMsg + "\n");
-        LOG(WARNING) << "very short command from client " << username() << ": '" << inMsg << '\'';
-    }
+		}else if(serverCommand == "login"){
+			on_login(parser.parseMessage());
+
+		}else if(serverCommand == "ping"){
+			on_ping();
+
+		}else if(serverCommand == "who"){
+			on_clients();
+	
+		}else if(serverCommand == "fibo"){
+			on_fibo(parser.parseMessage());
+	
+		}else if(serverCommand == "exit"){
+			stop();
+		}
+
+	} catch (std::exception &ex) {
+	    if(! inMsg.empty()){
+            string errmsg(string(u8"WARNING: unexpected data: ") + ex.what());
+            LOG(WARNING) <<errmsg;
+            do_write(parser.buildAnswer(false, inMsg, errmsg));
+	    }else{
+            LOG(WARNING) <<"WARNING: received empty msg";
+            do_read();
+	    }
+	}
 
 }
 
-void CClientSession::on_login(const string &msg)
+void CClientSession::on_login(const string &username)
 {
-    boost::recursive_mutex::scoped_lock lk(cs_);
-    std::istringstream in(msg);
+	{
+		boost::recursive_mutex::scoped_lock lk(cs_);
+		username_ = username;
 
-    in >> username_ >> username_;
+		VLOG(1) << "DEBUG: logged in: " << username_ << std::endl;
+	}
 
-    VLOG(1) << "DEBUG: logged in: " << username_ << std::endl;
+    do_write(CJsonParser::BuildAnswer(true, "login", "login OK"));
 
-    do_write(string("login ok\n"));
     update_clients_changed(); // this caused bug with dead lock when restore or backup db, I didn't tested fixed it or not
 }
 
 void CClientSession::on_ping()
 {
-    boost::recursive_mutex::scoped_lock lk(cs_);
-    do_write(clients_changed_ ? string("ping client_list_changed\n") : string(u8"ping OK\n"));
+	bool clients_changed;
+
+	{
+		boost::recursive_mutex::scoped_lock lk(cs_);
+		clients_changed = clients_changed_;
+	}
+
+	string message = clients_changed ? string("client_list_changed") : string("");
+
+    do_write(CJsonParser::BuildAnswer(true, "ping", message));
 
     // we have notified client, that clients list was changed yet,
     // so clients_changed_ should be false
@@ -191,12 +250,19 @@ void CClientSession::on_clients()
         clients_copy = clients;
     }
 
-    string msg;
+	pt::ptree clients;
 
-    for(const auto &it : clients_copy )
-        msg += it->username() + " ";
+	for (const auto &it : clients_copy) {
+		pt::ptree element;
+		element.put_value(it->username());
+		clients.push_back(std::make_pair("", element));
+	}
+	
+	std::map<string, pt::ptree> params;
+	params["clients"] = clients;
 
-    do_write(string("clients: " + msg + "\n"));
+	VLOG(1) << CJsonParser::BuildAnswer(true, "who", "", params);
+    do_write(CJsonParser::BuildAnswer(true, "who", "", params));
 }
 
 void CClientSession::on_check_ping()
@@ -220,11 +286,6 @@ void CClientSession::post_check_ping()
     timer_.async_wait(bind(&CClientSession::on_check_ping, shared_from_this()));
 }
 
-void CClientSession::on_write(const error_code &err, size_t bytes)
-{
-    do_read();
-}
-
 void CClientSession::do_get_fibo(const size_t &n)
 {
     //return n<=2 ? n: get_fibo(n-1) + get_fibo(n-2);
@@ -235,107 +296,96 @@ void CClientSession::do_get_fibo(const size_t &n)
         a = b; b = c;
     }
 
-    do_write(string("fibo: " + std::to_string(b) + "\n"));
+    // next do_write should be without do_read after write. So we put false as second param to do_write
+    do_write(CJsonParser::BuildAnswer(true, "fibo", std::to_string(b)), false);
 }
 
-void CClientSession::on_fibo(const string &msg)
+void CClientSession::on_fibo(const string &number)
 {
-    std::istringstream in(msg);
-    in.ignore(5);
+    std::istringstream in(number);
     size_t n;
     in >> n;
-    //msg.substr()
+    VLOG(1) <<"fibo for: "<<n;
     auto self = shared_from_this();
-    io_context_.post([self, this, &n](){ do_get_fibo(n); });
+    io_context_.post([self, this, n](){ do_get_fibo(n); });
 
     do_read();
 }
 
 
 
-void CClientSession::do_ask_db(string &query)
+void CClientSession::do_process_ipcam_event(const CJsonParser parser)
 {
-    if( ! started() )
+    if( ! started() ){
         return;
-
-    boost::recursive_mutex::scoped_lock bd_;
-
-    string answer;
-
-    if(! db->isConnected()){
-        if(! db->OpenConnection()){
-            answer = "ERROR: " + db->GetLastError();
-        }
-    }else{
-        //check if query is 'select' or 'insert/update...'
-        if((query.find("select") < 10) || (query.find("SELECT") < 10)){
-            //Get Data From DB
-            IResult *res = db->ExecuteSelect(query.c_str());
-
-            if (nullptr == res){
-                answer = "ERROR: undefined";
-                LOG(WARNING) << answer;
-            } else {
-                //Colomn Name
-                /*for (int i = 0; i < db->GetColumnCount(); ++i) {
-                        const char *tmpRes = res->NextColomnName(i);
-                        answer += (tmpRes ? std::move(string(tmpRes)): "NULL")+ separator;
-                }
-                answer += '\n';*/
-
-                //Data
-                while (res->Next()) {
-                    for (int i = 0; i < res->GetColumnCount(); i++){
-                        const char *tmpRes = res->ColomnData(i);
-                        answer += (tmpRes ? std::move(string(tmpRes)): "None")+ separator;
-
-                    }
-                    answer.resize(answer.size() - 1);
-                    answer += '\n';
-                }
-                //release Result Data
-                res->ReleaseStatement();
-
-                if(answer.empty()){
-                    answer = "NONE";
-                }else{
-                    answer.erase(answer.size() - 1);
-                }
-            }
-        }else{
-
-            int effectedData =  db->Execute(query.c_str());
-
-            if (effectedData < 0){
-                answer = std::string("ERROR: effected data < 0! : " + db->GetLastError());
-                LOG(WARNING) << answer;
-            }else{
-                //answer = "OK: count of effected data(" + std::to_string(effectedData) +")";
-                answer = "NONE";
-            }
-        }
     }
 
-    //VLOG(1) <<(int)answer[0]<<(int)answer[1];
-    do_write(answer);
+	int effectedData = 0;
+	SIpCameraEvent ipcamEvent;
+
+	{
+		boost::recursive_mutex::scoped_lock bd_;
+
+		if (!db->isConnected()) {
+			if (!db->OpenConnection()) {
+				LOG(WARNING) << "ERROR: " + db->GetLastError();
+				return;
+			}
+		}
+
+		// parse ev
+		ipcamEvent = parser.parseIpCameraEvent();
+
+		// save to db
+		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
+	}
+
+	businessLogic_->setLastIpCamEvent(ipcamEvent);
+
+    if (effectedData < 0){
+        LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
+    }else{
+        VLOG(1) << "DEBUG: seved event: " <<parser.toPrettyJson();
+    }
+
 }
 
-void CClientSession::on_query(const string &msg)
+void CClientSession::on_ipcam_event(const CJsonParser &parser)
 {
     if( !started() )
         return;
 
-    io_context_.post(bind(&CClientSession::do_ask_db, shared_from_this(), msg));
+    io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), parser));
 
     do_read();
+}
+
+void CClientSession::on_get_last_event() {
+    try {
+        string lastEvent(businessLogic_->getLastIpCamEvent().rawJson);
+
+        if(lastEvent.empty()){
+            throw std::invalid_argument("haven't any events");
+        }
+
+        CJsonParser eventParser(lastEvent);
+        eventParser.validateData();
+
+        std::map<string, pt::ptree> params;
+        params["event"] = eventParser.getTree();
+
+        do_write(eventParser.buildAnswer(true, "get_last_event", "", params));
+    } catch (std::exception &ex) {
+        string errmsg(string(u8"ERROR: ") + ex.what());
+        LOG(WARNING) <<errmsg;
+        do_write(CJsonParser::BuildAnswer(false, "get_last_event", errmsg));
+    }
 }
 
 
 
 void CClientSession::do_read()
 {
-    //VLOG(1) << "DEBUG: do read" << std::endl;
-
     {
         boost::recursive_mutex::scoped_lock lk(cs_);
         ZeroMemory(read_buffer_.get(), sizeof(char) * MAX_READ_BUFFER);
@@ -348,7 +398,7 @@ void CClientSession::do_read()
 
 }
 
-void CClientSession::do_write(const string &msg)
+void CClientSession::do_write(const string &msg, bool read_on_write)
 {
     if( !started() )
         return;
@@ -360,13 +410,27 @@ void CClientSession::do_write(const string &msg)
 
     std::copy(msg.begin(), msg.end(), write_buffer_.get());
 
+    auto self(shared_from_this());
+
     async_write(sock_, buffer(write_buffer_.get(), msg.size()),
-                           bind(&CClientSession::on_write, shared_from_this(), _1, _2));
+                [this, self, read_on_write](error_code, size_t){
+                    if(read_on_write){
+                        do_read();
+                    }
+                });
+
 }
 
 void update_clients_changed()
 {
     cli_ptr_vector clients_copy;
+
+//    // C++17 only
+//    if(boost::recursive_mutex::scoped_lock lk(clients_cs); !clients.empty()){
+//
+//        clients_copy = clients;
+//    }
+
     {
         boost::recursive_mutex::scoped_lock lk(clients_cs);
         clients_copy = clients;

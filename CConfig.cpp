@@ -21,7 +21,7 @@ CConfig::KeyBindings::KeyBindings(const string exePath)
 
 	ipAdress = "127.0.0.1";
 	port = 65044;
-	threads = 10;
+	threads = 4;
     timeoutToDropConnection = 5 * 60 * 1000; //5 min
 
 	logDir = exeFolderPath_ + "logs";

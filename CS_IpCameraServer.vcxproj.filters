@@ -21,9 +21,6 @@
     <ClCompile Include="CConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CRunAsync.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,10 +42,10 @@
     <ClCompile Include="Service.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CBinaryFileReader.cpp">
+    <ClCompile Include="CBusinessLogic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CBusinessLogic.cpp">
+    <ClCompile Include="Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,9 +54,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CConfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CRunAsync.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CServer.h">
@@ -83,10 +77,10 @@
     <ClInclude Include="Service.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CBinaryFileReader.h">
+    <ClInclude Include="CBusinessLogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CBusinessLogic.h">
+    <ClInclude Include="Events.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

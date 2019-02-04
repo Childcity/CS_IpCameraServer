@@ -14,7 +14,7 @@
 	#include "Service.h" //For Windows Service
 #endif // WIN32
 
-
+#include <boost/regex.hpp>
 //Global variable declared in main.h
 std::string dbPath;
 size_t sqlWaitTime;
@@ -27,37 +27,39 @@ int main(int argc, char *argv[])
 {
 	static CConfig cfg(argv[0]);
 
-	if( ! running_from_service )
-	{
-		cfg.Load();
-		LOG_IF(FATAL, CConfig::Status::ERROR == cfg.getStatus()) <<"Check settings file and RESTART" ;
-
-		running_from_service = 1;
-#ifdef WIN32
-		if( service_register(argc, argv, (LPSTR)cfg.keyBindings.serviceName.c_str()) )
-		{
-			VLOG(1) << "DEBUG: We've been called as a service. Register service and exit this thread.";
-			/* We've been called as a service. Register service
-			* and exit this thread. main() would be called from
-			* service.c next time.
-			*
-			* Note that if service_register() succeedes it does
-			* not return until the service is stopped.
-			* That is why we should set running_from_service
-			* before calling service_register and unset it
-			* afterwards.
-			*/
-			return 0;
-		}
-#endif // WIN32
-
-		LOG(INFO) <<"Started as console application";
-
-		running_from_service = 0;
-	}
-
 	try
 	{
+
+		if( ! running_from_service )
+		{
+			cfg.Load();
+			LOG_IF(FATAL, CConfig::Status::ERROR == cfg.getStatus()) <<"Check settings file and RESTART" ;
+
+			running_from_service = 1;
+#ifdef WIN32
+			if( service_register(argc, argv, (LPSTR)cfg.keyBindings.serviceName.c_str()) )
+			{
+				VLOG(1) << "DEBUG: We've been called as a service. Register service and exit this thread.";
+				/* We've been called as a service. Register service
+				* and exit this thread. main() would be called from
+				* service.c next time.
+				*
+				* Note that if service_register() succeedes it does
+				* not return until the service is stopped.
+				* That is why we should set running_from_service
+				* before calling service_register and unset it
+				* afterwards.
+				*/
+				return 0;
+			}
+#endif // WIN32
+
+			LOG(INFO) <<"Started as console application";
+
+			running_from_service = 0;
+		}
+
+
 		boost::asio::io_context io_context;
 
 		// try connect to db and check sqlite settings
@@ -93,6 +95,9 @@ void TestSqlite3Settings(CConfig *cfg){
     LOG(INFO) <<"Using db: " <<cfg->keyBindings.dbPath;
 
     LOG_IF(FATAL, sqlite3_threadsafe() == 0 ) <<"Sqlite compiled without 'threadsafe' mode";
+
+	// throws errors!
+	CBusinessLogic::CreateOrUseDb(cfg->keyBindings.dbPath);
 
     CSQLiteDB::ptr db = CSQLiteDB::new_(cfg->keyBindings.dbPath);
 	LOG_IF(FATAL, ! db->OpenConnection()) <<"Can't connect to '" << cfg->keyBindings.dbPath << "', check permission or file does not exist. System error: " << db->GetLastError();

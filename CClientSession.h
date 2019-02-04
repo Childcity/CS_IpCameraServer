@@ -6,7 +6,7 @@
 #include "CSQLiteDB.h"
 #include "glog/logging.h"
 #include "CBusinessLogic.h"
-#include "CBinaryFileReader.h"
+#include "CJsonParser.h"
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -17,6 +17,7 @@
 #include <string>
 #include <algorithm>
 #include <utility>
+#include <map>
 
 using namespace boost::asio;
 using namespace boost::posix_time;
@@ -63,7 +64,7 @@ public:
 private:
 	void on_read(const error_code &err, size_t bytes);
 
-	void on_login(const string &msg);
+	void on_login(const string &username);
 
 	void on_ping();
 
@@ -73,27 +74,27 @@ private:
 
 	void post_check_ping();
 
-	void on_write(const error_code &err, size_t bytes);
-
 		void do_get_fibo(const size_t &n);
 
-		void on_fibo(const string &msg);
+		void on_fibo(const string &number);
 
-	void do_ask_db(string &query);
+	void do_process_ipcam_event(CJsonParser parser);
 
-	void on_query(const string &msg);
+	void on_ipcam_event(const CJsonParser &parser);
+
+	void on_get_last_event();
 
 	void do_read();
 
-	void do_write(const string &msg);
+	void do_write(const string &msg, bool read_on_write = true);
 
 private:
 
 	mutable boost::recursive_mutex cs_;
-	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 500*1024 };
+	enum{ MAX_WRITE_BUFFER = 20971520, MAX_READ_BUFFER = 1*1024 };
 	const size_t maxTimeout_;
     //const char endOfMsg[0] = {};
-	const size_t sizeEndOfMsg = 0;
+	//const size_t sizeEndOfMsg = 0;
 	scoped_array<char> read_buffer_;
 	scoped_array<char>  write_buffer_;
 	io_context &io_context_;
