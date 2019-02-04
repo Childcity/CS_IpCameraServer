@@ -210,6 +210,7 @@ public:
 		return parser.buildAnswer(status, command, message, std::move(otherParams));
 	}
 
+
 private:
 	pt::ptree tree_;
 	string rawData_;
