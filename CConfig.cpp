@@ -1,6 +1,4 @@
 #include "CConfig.h"
-#include "INIReaderWriter/INIReader.h"
-#include "INIReaderWriter/INIWriter.hpp"
 
 using INIWriter = samilton::INIWriter;
 

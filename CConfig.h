@@ -2,6 +2,8 @@
 #ifndef CS_MINISQLITESERVER_CCONFIG_H
 #define CS_MINISQLITESERVER_CCONFIG_H
 
+#include "INIReaderWriter/INIReader.h"
+#include "INIReaderWriter/INIWriter.hpp"
 #include "glog/logging.h"
 #include "main.h"
 
