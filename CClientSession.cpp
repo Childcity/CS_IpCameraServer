@@ -64,7 +64,7 @@ void CClientSession::stop()
         VLOG(1) << "DEBUG: stop client: " << username() << std::endl;
 
         started_ = false;
-        sock_.close();
+        sock_.cancel();
     }
 
     ptr self = shared_from_this();
