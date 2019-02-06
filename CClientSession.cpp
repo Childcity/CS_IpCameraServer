@@ -253,7 +253,9 @@ void CClientSession::on_clients()
 	pt::ptree clients;
 
 	for (const auto &it : clients_copy) {
-		clients.push_back(pt::ptree::value_type("", it->username()));
+	    pt::ptree element;
+	    element.put_value(it->username());
+		clients.push_back(std::make_pair("", element));
 	}
 	
 	std::map<string, pt::ptree> params;
