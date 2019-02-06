@@ -189,7 +189,7 @@ public:
 		serverAnswerTree.put("command", command);
 		if(! message.empty())
 			serverAnswerTree.put("params.message", message);
-		serverAnswerTree.put("params.status", status ? "ok":"error");
+		serverAnswerTree.put("params.status", status ? "ok" : "error");
 
 		for (const auto &param : otherParams) {
 			if((! param.first.empty()) && (! param.second.empty()))
