@@ -9,7 +9,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <utility>
 #include <ctime>
-#include <iomanip>
 #include <chrono>
 #include <map>
 
@@ -174,8 +173,9 @@ public:
 		std::time_t t = std::time(nullptr);   // get time now
 		std::tm *now = std::localtime(&t);
 
-		std::stringstream strStream;
-		strStream << std::put_time(now, "%Y-%m-%d %H:%M:%S");
+        char dateTimeBuffer [80] = {' '};
+
+        strftime (dateTimeBuffer, 80, "%d-%m-%Y %H:%M:%S", now);
 
 		using std::chrono::duration_cast;
         using std::chrono::milliseconds;
@@ -197,10 +197,10 @@ public:
 		}
 
 		serverAnswerTree.put("timestamp", timestamp);
-		serverAnswerTree.put("server_datetime", strStream.str());
+		serverAnswerTree.put("server_datetime", dateTimeBuffer);
 
 		// Write property tree to stream file
-		strStream.str(string());
+        std::stringstream strStream;
 		pt::write_json(strStream, serverAnswerTree, true); // true to make pretty json
 
 		return strStream.str();

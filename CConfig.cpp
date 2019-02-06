@@ -1,6 +1,4 @@
 #include "CConfig.h"
-#include "INIReaderWriter/INIReader.h"
-#include "INIReaderWriter/INIWriter.hpp"
 
 using INIWriter = samilton::INIWriter;
 
@@ -74,11 +72,11 @@ string CConfig::getConstructedNameOfLogDir() const
 {
 	std::time_t t = std::time(nullptr);   // get time now
 	std::tm *now = std::localtime(&t);
+	char dateTimeBuffer [80] = {' '};
 
-	std::ostringstream nameStream;
-	nameStream << std::put_time(now, "%d-%m-%Y_%H-%M-%S");
+	strftime (dateTimeBuffer,80, "%d-%m-%Y_%H-%M-%S", now);
 
-	return string(nameStream.str());
+	return string(dateTimeBuffer);
 }
 
 void CConfig::initGlog()
@@ -96,10 +94,10 @@ void CConfig::initGlog()
 	FLAGS_v = static_cast<google::int32>(keyBindings.verbousLog);
 	FLAGS_minloglevel = static_cast<google::int32>(keyBindings.minLogLevel);
 
-	#ifdef WIN32
+#ifdef WIN32
 	CreateDirectoryW(ConverterUTF8_UTF16<std::string, std::wstring>(keyBindings.logDir).c_str(), NULL);
 	CreateDirectoryW(ConverterUTF8_UTF16<std::string, std::wstring>(newFolder).c_str(), NULL);
-	#else
+#else
 	google::InstallFailureSignalHandler();
 
 		int ret = mkdir(keyBindings.logDir.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
@@ -113,7 +111,7 @@ void CConfig::initGlog()
 			//log directory not exist or permission denied or other error
 			LOG(FATAL) << "Error: can't create or use log dir '" << newFolder << "': " << strerror(errno);
 		}
-	#endif // WIN32
+#endif // WIN32
 
 	google::InitGoogleLogging(defaultKeyBindings.exeName_.c_str());
 }

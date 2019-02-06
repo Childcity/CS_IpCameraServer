@@ -2,13 +2,14 @@
 #ifndef CS_MINISQLITESERVER_CCONFIG_H
 #define CS_MINISQLITESERVER_CCONFIG_H
 
+#include "INIReaderWriter/INIReader.h"
+#include "INIReaderWriter/INIWriter.hpp"
 #include "glog/logging.h"
 #include "main.h"
 
 #include <sys/stat.h>
 #include <string>
 #include <ctime>
-#include <iomanip>
 
 #ifdef WIN32
 #include <Windows.h>
