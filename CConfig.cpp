@@ -2,10 +2,6 @@
 #include "INIReaderWriter/INIReader.h"
 #include "INIReaderWriter/INIWriter.hpp"
 
-#include <ctime>
-#include <sys/stat.h>
-#include "glog/logging.h"
-
 using INIWriter = samilton::INIWriter;
 
 CConfig::KeyBindings::KeyBindings(const string exePath)
