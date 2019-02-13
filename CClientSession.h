@@ -107,7 +107,7 @@ private:
 	string username_;
 	bool clients_changed_;
 
-	mutable  boost::recursive_mutex db_;
+	mutable  boost::recursive_mutex db_mtx_;
 	CSQLiteDB::ptr db;
 	const char separator = '|';
 

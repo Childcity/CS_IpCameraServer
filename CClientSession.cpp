@@ -323,7 +323,7 @@ void CClientSession::do_process_ipcam_event(const CJsonParser parser)
 	SIpCameraEvent ipcamEvent;
 
 	{
-		boost::recursive_mutex::scoped_lock bd_;
+		boost::recursive_mutex::scoped_lock lock(db_mtx_);
 
 		if (!db->isConnected()) {
 			if (!db->OpenConnection()) {
