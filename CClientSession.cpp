@@ -315,9 +315,9 @@ void CClientSession::on_fibo(const string &number)
 
 void CClientSession::do_process_ipcam_event(const CJsonParser parser)
 {
-    if( ! started() ){
-        return;
-    }
+// We must not check 'started', because ip camera immediately drop connection, and 'started' become false, so event from camera will be skiped
+//    if( ! started() )
+//        return;
 
 	int effectedData = 0;
 	SIpCameraEvent ipcamEvent;
