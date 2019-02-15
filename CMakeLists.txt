@@ -27,7 +27,7 @@ set(SOURCES
         include/INIReaderWriter/INIWriter.hpp)
 
 set(HEADERS
-        main.h CConfig.h CServer.h CClientSession.h CSQLiteDB.h CBusinessLogic.h CJsonParser.h
+        main.h CConfig.h CServer.h CClientSession.h CSQLiteDB.h CBusinessLogic.h CJsonParser.h SIpCameraEvent.hpp
         include/sqlite3/sqlite3.h
         include/INIReaderWriter/ini.h
         include/INIReaderWriter/INIReader.h)
