@@ -14,14 +14,19 @@
     - #### glog 3.5 должен быть установлен в систему
 
 - ### Чтобы скомпилировать сервер выполните
-```
-    cd ./CS_IpCameraServer
-    mkdir build
-    cd build
-    cmake ..
-    cmake --build . --config Release --target CS_IpCameraServer -- -j 4
-```
-
+    - ####На *NIX подобных системах
+        ```
+        cd ./CS_IpCameraServer
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . --config Release --target CS_IpCameraServer -- -j 4
+        ```
+    - #### На Windows
+        - В Visual Studio 2017 или выше открыть файл проекта CS_IpCameraServer.sln
+        - Выбрать архитектруру x64 или x86
+        - Выбрать тип сборки "Release"
+        - Построить проект (В корне проекта создасться папка Debug или Release в зависимости от сборки и в ней можно будет исполняемый файл CS_IpCameraServer.exe)
 - ### Пример события от камеры:
     ```
     {
@@ -80,7 +85,7 @@
         }
         ```
     - #### Структура и пример ответа от сервера:
-        - #### If positive:
+        - ##### If positive:
             ```
             {
                 "command": "get_last_event",
@@ -93,7 +98,7 @@
             }
             ```
 
-        - #### If negative (error occur):
+        - ##### If negative (error occur):
             ```
             {
                 "command": "get_last_event",
