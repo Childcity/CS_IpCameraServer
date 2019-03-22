@@ -1,10 +1,13 @@
-﻿#pragma once
+﻿#ifndef MAIN_H
+#define MAIN_H
+#pragma once
 
 //#define BOOST_ASIO_ENABLE_HANDLER_TRACKING // for asio debuging
 //#define GOOGLE_STRIP_LOG 0 // cut all glog strings from .exe
 
-#include <string>
+#include <boost/asio.hpp> //НЕ УДАЛЯТЬ ПОСЛЕДОВАТЕЛЬНОСТЬ #include, иначе в MVC перестает компилироваться
 #include <boost/thread/recursive_mutex.hpp>
+#include <string>
 #include "CConfig.h"
 
 #ifndef WIN32
@@ -46,3 +49,5 @@ static B ConverterUTF8_UTF16(A str1)
 	}
 }
 #endif // WIN32
+
+#endif

@@ -7,12 +7,13 @@
 #include "glog/logging.h"
 #include "main.h"
 
-#include <sys/stat.h>
 #include <string>
 #include <ctime>
 
 #ifdef WIN32
 #include <Windows.h>
+#else
+#include <sys/stat.h>
 #endif // WIN32
 
 using string = std::string;

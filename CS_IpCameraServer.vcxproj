@@ -149,7 +149,7 @@
     <ClCompile Include="CBusinessLogic.cpp" />
     <ClCompile Include="CClientSession.cpp" />
     <ClCompile Include="CConfig.cpp" />
-    <ClCompile Include="Events.cpp" />
+    <ClCompile Include="CJsonParser.cpp" />
     <ClCompile Include="CServer.cpp" />
     <ClCompile Include="CSQLiteDB.cpp" />
     <ClCompile Include="include\INIReaderWriter\ini.c" />
@@ -162,6 +162,7 @@
     <ClInclude Include="CBusinessLogic.h" />
     <ClInclude Include="CClientSession.h" />
     <ClInclude Include="CConfig.h" />
+    <ClInclude Include="CJsonParser.h" />
     <ClInclude Include="Events.h" />
     <ClInclude Include="CServer.h" />
     <ClInclude Include="CSQLiteDB.h" />
@@ -170,6 +171,7 @@
     <ClInclude Include="include\sqlite3\sqlite3.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Service.h" />
+    <ClInclude Include="SIpCameraEvent.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
