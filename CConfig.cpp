@@ -24,7 +24,7 @@ CConfig::KeyBindings::KeyBindings(const string exePath)
 	verbousLog = 0;
 	minLogLevel = 0;
 
-	serviceName = "CS_MiniSQLiteServerSvc";
+	serviceName = "CS_IpCameraServerSvc";
 };
 
 CConfig::CConfig(string exePath)
