@@ -39,7 +39,7 @@ void CClientSession::start()
     });
     LOG_IF(WARNING, ! db->OpenConnection()) << "ERROR: can't connect to db: " <<db->GetLastError();
     IResult *res = db->ExecuteSelect(string("PRAGMA journal_mode = WAL; PRAGMA encoding = \"UTF-8\"; "
-                                                      "PRAGMA foreign_keys = 1; PRAGMA page_size = " + std::to_string(blockOrClusterSize) + "; PRAGMA cache_size = -3000;").c_str());
+                                            "PRAGMA foreign_keys = 1; PRAGMA page_size = " + std::to_string(blockOrClusterSize) + "; PRAGMA cache_size = -3000;").c_str());
     res->ReleaseStatement();
 
     last_ping_ = boost::posix_time::microsec_clock::local_time();
@@ -169,7 +169,7 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 	try {
 		parser.validateData();
 
-		string serverCommand(parser.parseCommand());
+		string serverCommand(parser.getCommand());
 
 		if (serverCommand.empty()) {
 			// check if it is ip camera event
@@ -179,10 +179,10 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 				throw std::invalid_argument("not an event");
 			}
 		}else if(serverCommand == "get_last_event"){
-            on_get_last_event();
+            on_get_last_event(parser.getCameraSensorProviderID());
 
 		}else if(serverCommand == "login"){
-			on_login(parser.parseMessage());
+			on_login(parser.getMessage());
 
 		}else if(serverCommand == "ping"){
 			on_ping();
@@ -191,7 +191,7 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 			on_clients();
 	
 		}else if(serverCommand == "fibo"){
-			on_fibo(parser.parseMessage());
+			on_fibo(parser.getMessage());
 	
 		}else if(serverCommand == "exit"){
 			stop();
@@ -359,12 +359,12 @@ void CClientSession::on_ipcam_event(const CJsonParser &parser)
     do_read();
 }
 
-void CClientSession::on_get_last_event() {
+void CClientSession::on_get_last_event(const string &sensorProviderID) {
     try {
-        string lastEvent(businessLogic_->getLastIpCamEvent().rawJson);
+        string lastEvent(businessLogic_->getLastIpCamEvent(sensorProviderID).rawJson);
 
         if(lastEvent.empty()){
-            throw std::invalid_argument("haven't any events");
+            throw std::invalid_argument("Haven't any events");
         }
 
         CJsonParser eventParser(lastEvent);
@@ -375,8 +375,8 @@ void CClientSession::on_get_last_event() {
 
         do_write(eventParser.buildAnswer(true, "get_last_event", "", params));
     } catch (std::exception &ex) {
-        string errmsg(string(u8"ERROR: ") + ex.what());
-        LOG(WARNING) <<errmsg;
+        string errmsg(string(u8"INFO: ") + ex.what());
+        LOG(INFO) <<errmsg;
         do_write(CJsonParser::BuildAnswer(false, "get_last_event", errmsg));
     }
 }

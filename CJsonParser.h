@@ -35,10 +35,13 @@ public:
 	void validateData();
 
 	// throws exceptions!!!
-	string parseMessage() const;
+	string getMessage() const;
 
 	// no throw
-	string parseCommand() const noexcept;
+	string getCommand() const noexcept;
+
+	// no throw
+	string getCameraSensorProviderID() const noexcept;
 	
 	// no throw
 	bool isIpCameraEvent() const noexcept;

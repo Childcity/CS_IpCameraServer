@@ -28,12 +28,16 @@ void CJsonParser::validateData() {
     pt::json_parser::read_json(strstream, tree_);
 }
 
-string CJsonParser::parseMessage() const {
+string CJsonParser::getMessage() const {
     return tree_.get<string>("params.message");
 }
 
-string CJsonParser::parseCommand() const noexcept {
+string CJsonParser::getCommand() const noexcept {
     return tree_.get("command", string());
+}
+
+string CJsonParser::getCameraSensorProviderID() const noexcept {
+    return tree_.get<string>("params.sensorProviderID", string());
 }
 
 bool CJsonParser::isIpCameraEvent() const noexcept {

@@ -82,7 +82,7 @@ private:
 
 	void on_ipcam_event(const CJsonParser &parser);
 
-	void on_get_last_event();
+	void on_get_last_event(const string &sensorProviderID);
 
 	void do_read();
 

@@ -45,7 +45,7 @@ public:
 
     void setLastIpCamEvent(const SIpCameraEvent &ipCamEvent);
 
-	SIpCameraEvent getLastIpCamEvent() const;
+	SIpCameraEvent getLastIpCamEvent(const string &sensorProviderID = std::string()) const;
 
     // throws BusinessLogicError
     static void CreateOrUseDb(const std::string &dbPath);
@@ -55,7 +55,7 @@ private:
 private:
     mutable boost::shared_mutex business_logic_mtx_;
 
-    SIpCameraEvent lastIpCamEvent_;
+    std::list<SIpCameraEvent> lastIpCamEvent_;
 };
 
 #endif //CS_MINISQLITESERVER_CBUSINESSLOGIC_H
