@@ -37,6 +37,7 @@ struct SIpCameraEvent {
 
     static const char *CREATE_TABLE_QUERY() {
         return "CREATE TABLE IF NOT EXISTS ip_camera_events(\n"
+               // id is not needed for SQLITE, because this db by default create raw_id in each table
                "  packetCounter INTEGER,\n"
                "  `datetime` TEXT,\n"
                "  plateText BLOB,\n"
