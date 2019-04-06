@@ -55,7 +55,7 @@ private:
 private:
     mutable boost::shared_mutex business_logic_mtx_;
 
-    std::list<SIpCameraEvent> lastIpCamEvent_;
+    std::list<SIpCameraEvent> lastIpCamEvents_;
 };
 
 #endif //CS_MINISQLITESERVER_CBUSINESSLOGIC_H

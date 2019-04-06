@@ -13,24 +13,24 @@ void CBusinessLogic::setLastIpCamEvent(const SIpCameraEvent &ipCamEvent) {
     //TODO: db check
     //exclusive access to data!
     boost::unique_lock<boost::shared_mutex> lock(business_logic_mtx_);
-    for(auto &ev : lastIpCamEvent_){
+    for(auto &ev : lastIpCamEvents_){
         if(ev.sensorProviderID == ipCamEvent.sensorProviderID){
             ev = ipCamEvent;
             return;
         }
     }
     // if here -> this is first event
-    lastIpCamEvent_.emplace_back(ipCamEvent);
+    lastIpCamEvents_.emplace_back(ipCamEvent);
 }
 
 SIpCameraEvent CBusinessLogic::getLastIpCamEvent(const string &sensorProviderID) const {
     //TODO: db check
     //NOT exclusive access to data! Allows only read, not write!
     boost::shared_lock<boost::shared_mutex> lock(business_logic_mtx_);
-    for(const auto &ev : lastIpCamEvent_){
+    for(const auto &ev : lastIpCamEvents_){
         VLOG(1) <<ev.sensorProviderID;
     }
-    for(const auto &ev : lastIpCamEvent_){
+    for(const auto &ev : lastIpCamEvents_){
         if(ev.sensorProviderID == sensorProviderID){
             return ev;
         }

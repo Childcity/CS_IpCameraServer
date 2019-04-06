@@ -107,6 +107,7 @@ string CJsonParser::buildAnswer(bool status, const string &command, const string
     serverAnswerTree.put("params.status", status ? "ok" : "error");
 
     for (const auto &param : otherParams) {
+        //putting not emty params
         if((! param.first.empty()) && (! param.second.empty()))
             serverAnswerTree.put_child("params."+param.first, param.second);
     }
