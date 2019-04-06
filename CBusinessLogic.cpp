@@ -28,7 +28,7 @@ SIpCameraEvent CBusinessLogic::getLastIpCamEvent(const string &sensorProviderID)
     //NOT exclusive access to data! Allows only read, not write!
     boost::shared_lock<boost::shared_mutex> lock(business_logic_mtx_);
     for(const auto &ev : lastIpCamEvents_){
-        VLOG(1) <<ev.sensorProviderID;
+        VLOG(1) <<ev.sensorProviderID <<lastIpCamEvents_.size();
     }
     for(const auto &ev : lastIpCamEvents_){
         if(ev.sensorProviderID == sensorProviderID){

@@ -116,9 +116,6 @@ void CClientSession::on_read(const error_code &err, size_t bytes)
 
     // we must make copy of read_buffer_, for quick unlock cs_ mutex
     size_t len = strlen(read_buffer_.get());
-
-
-
     string inMsg;
     {
         boost::recursive_mutex::scoped_lock lk(cs_);
@@ -344,7 +341,7 @@ void CClientSession::do_process_ipcam_event(const CJsonParser parser)
     if (effectedData < 0){
         LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
     }else{
-        VLOG(1) << "DEBUG: seved event: " <<parser.toPrettyJson();
+        VLOG(1) << "DEBUG: save event: " <<parser.toPrettyJson();
     }
 
 }
@@ -355,19 +352,18 @@ void CClientSession::on_ipcam_event(const CJsonParser &parser)
         return;
 
     io_context_.post(bind(&CClientSession::do_process_ipcam_event, shared_from_this(), parser));
-
     do_read();
 }
 
 void CClientSession::on_get_last_event(const string &sensorProviderID) {
     try {
-        string lastEvent(businessLogic_->getLastIpCamEvent(sensorProviderID).rawJson);
+        string lastEventRawJson(businessLogic_->getLastIpCamEvent(sensorProviderID).rawJson);
 
-        if(lastEvent.empty()){
-            throw std::invalid_argument("Haven't any events");
+        if(lastEventRawJson.empty()){
+            throw std::invalid_argument("Event not found");
         }
 
-        CJsonParser eventParser(lastEvent);
+        CJsonParser eventParser(lastEventRawJson);
         eventParser.validateData();
 
         std::map<string, pt::ptree> params;
@@ -375,7 +371,7 @@ void CClientSession::on_get_last_event(const string &sensorProviderID) {
 
         do_write(eventParser.buildAnswer(true, "get_last_event", "", params));
     } catch (std::exception &ex) {
-        string errmsg(string(u8"INFO: ") + ex.what());
+        string errmsg(string(u8"WARNING: ") + ex.what());
         LOG(INFO) <<errmsg;
         do_write(CJsonParser::BuildAnswer(false, "get_last_event", errmsg));
     }

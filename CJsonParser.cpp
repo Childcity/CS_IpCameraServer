@@ -37,7 +37,7 @@ string CJsonParser::getCommand() const noexcept {
 }
 
 string CJsonParser::getCameraSensorProviderID() const noexcept {
-    return tree_.get<string>("params.sensorProviderID", string());
+    return tree_.get<string>("params.sensor_provider_id", string());
 }
 
 bool CJsonParser::isIpCameraEvent() const noexcept {
