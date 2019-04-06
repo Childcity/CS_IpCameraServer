@@ -4,7 +4,7 @@
 
 #include "main.h"
 #include "glog/logging.h"
-#include "SIpCameraEvent.hpp"
+#include "DAO/SIpCameraEvent.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
