@@ -8,9 +8,9 @@
 
 #include <string>
 
-using string = std::string;
-
 struct SIpCameraEvent {
+    using string = std::string;
+
     SIpCameraEvent() = default;
     SIpCameraEvent(const SIpCameraEvent &) = default;
     SIpCameraEvent &operator=(const SIpCameraEvent &) = default;
@@ -36,7 +36,7 @@ struct SIpCameraEvent {
     string rawJson;
 
     static const char *CREATE_TABLE_QUERY() {
-        return "CREATE TABLE IF NOT EXISTS ip_camera_events(\n"
+        return u8"CREATE TABLE IF NOT EXISTS ip_camera_events(\n"
                // id is not needed for SQLITE, because this db by default create raw_id in each table
                "  packetCounter INTEGER,\n"
                "  `datetime` TEXT,\n"
@@ -62,7 +62,7 @@ struct SIpCameraEvent {
     }
 
     static string INSERT_EVENT_QUERY(const SIpCameraEvent &ipCamEvent) {
-        static const string constPart("INSERT INTO ip_camera_events (packetCounter, `datetime`, plateText, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
+        static const string constPart(u8"INSERT INTO ip_camera_events (packetCounter, `datetime`, plateText, plateCountry, plateConfidence, cameraId, carState, geotag_lat, geotag_lon, "
                                       "imageType, plateImageType, plateImageSize, carMoveDirection, timeProcessing, plateCoordinates, carID, GEOtarget, sensorProviderID, rawJson) ");
 
         return string(constPart + "VALUES "

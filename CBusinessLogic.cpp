@@ -9,32 +9,35 @@ CBusinessLogic::CBusinessLogic()
 
 CBusinessLogic::~CBusinessLogic() {VLOG(1) <<"DEBUG: ~CBusinessLogic";}
 
-void CBusinessLogic::setLastIpCamEvent(const SIpCameraEvent &ipCamEvent) {
-    //TODO: db check
+bool CBusinessLogic::setLastIpCamEvent(const CSQLiteDB::ptr &dbPtr, const SIpCameraEvent &ipCamEvent) {
+    knownIpCameraList_.setActive(dbPtr);
+    if(! knownIpCameraList_.isActive(ipCamEvent.sensorProviderID)){
+        return false;
+    }
+
     //exclusive access to data!
     boost::unique_lock<boost::shared_mutex> lock(business_logic_mtx_);
     for(auto &ev : lastIpCamEvents_){
+        // if event exist from this camera -> replace it
         if(ev.sensorProviderID == ipCamEvent.sensorProviderID){
             ev = ipCamEvent;
-            return;
+            return true;
         }
     }
     // if here -> this is first event
     lastIpCamEvents_.emplace_back(ipCamEvent);
+    return true;
 }
 
-SIpCameraEvent CBusinessLogic::getLastIpCamEvent(const string &sensorProviderID) const {
-    //TODO: db check
+SIpCameraEvent CBusinessLogic::getLastIpCamEvent(const string &sensorProviderID) {
     //NOT exclusive access to data! Allows only read, not write!
     boost::shared_lock<boost::shared_mutex> lock(business_logic_mtx_);
-    for(const auto &ev : lastIpCamEvents_){
-        VLOG(1) <<ev.sensorProviderID <<lastIpCamEvents_.size();
-    }
     for(const auto &ev : lastIpCamEvents_){
         if(ev.sensorProviderID == sensorProviderID){
             return ev;
         }
     }
+
     // if here -> no event with this sensorProviderID
     return SIpCameraEvent();
 }
@@ -56,10 +59,11 @@ void CBusinessLogic::CreateOrUseDb(const std::string &dbPath) {
     }
 
     //create table for temporary query strings
-    int res = tmpDb->Execute(SIpCameraEvent::CREATE_TABLE_QUERY());
+    int resIpCamEv = tmpDb->Execute(SIpCameraEvent::CREATE_TABLE_QUERY());
+    int resKnownIpCamEv = tmpDb->Execute(SKnownIpCamera::CREATE_TABLE_QUERY());
 
-    if(res < 0){
-        string errMsg("Can't create table for ip_camera events");
+    if(resIpCamEv < 0 || resKnownIpCamEv < 0){
+        string errMsg("Can't create tables");
         LOG(WARNING) <<"BUSINESS_LOGIC: " <<errMsg;
         throw BusinessLogicError(errMsg);
     }

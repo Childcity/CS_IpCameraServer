@@ -7,6 +7,8 @@
 #pragma once
 
 #include "main.h"
+#include "DAO/CKnownIpCameraList.h"
+#include "DAO/SKnownIpCamera.hpp"
 #include "CJsonParser.h"
 #include "CSQLiteDB.h"
 #include "glog/logging.h"
@@ -43,9 +45,9 @@ public:
     CBusinessLogic(CBusinessLogic const&) = delete;
     CBusinessLogic &operator=(CBusinessLogic const&) = delete;
 
-    void setLastIpCamEvent(const SIpCameraEvent &ipCamEvent);
+    bool setLastIpCamEvent(const CSQLiteDB::ptr &dbPtr, const SIpCameraEvent &ipCamEvent);
 
-	SIpCameraEvent getLastIpCamEvent(const string &sensorProviderID = std::string()) const;
+	SIpCameraEvent getLastIpCamEvent(const string &sensorProviderID = std::string());
 
     // throws BusinessLogicError
     static void CreateOrUseDb(const std::string &dbPath);
@@ -56,6 +58,7 @@ private:
     mutable boost::shared_mutex business_logic_mtx_;
 
     std::list<SIpCameraEvent> lastIpCamEvents_;
+    CKnownIpCameraList knownIpCameraList_;
 };
 
 #endif //CS_MINISQLITESERVER_CBUSINESSLOGIC_H

@@ -64,6 +64,7 @@ void CClientSession::stop()
         VLOG(1) << "DEBUG: stop client: " << username() << std::endl;
 
         started_ = false;
+        sock_.shutdown(socket_base::shutdown_type::shutdown_both); //instead of socket.close(), beacause socket.close() make segmentation fault currently socket red something. Not tested
         sock_.cancel();
     }
 
@@ -332,16 +333,19 @@ void CClientSession::do_process_ipcam_event(const CJsonParser parser)
 		// parse ev
 		ipcamEvent = parser.parseIpCameraEvent();
 
+        if(! businessLogic_->setLastIpCamEvent(db, ipcamEvent)){
+            VLOG(1) << "SensorProviderID wasn't allowed: " <<ipcamEvent.sensorProviderID;
+            return;
+        }
+
 		// save to db
 		effectedData = db->Execute(SIpCameraEvent::INSERT_EVENT_QUERY(ipcamEvent).c_str());
 	}
 
-	businessLogic_->setLastIpCamEvent(ipcamEvent);
-
     if (effectedData < 0){
         LOG(WARNING) << "ERROR: effected data < 0! : " << db->GetLastError();
     }else{
-        VLOG(1) << "DEBUG: save event: " <<parser.toPrettyJson();
+        VLOG(1) << "DEBUG: event was saved: " <<parser.toPrettyJson();
     }
 
 }

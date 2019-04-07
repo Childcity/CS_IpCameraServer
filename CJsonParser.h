@@ -91,8 +91,8 @@ private:
     "sensorProviderID":"Terminal_1"
 
 }
-{"packetCounter":"1223","datetime":"20190123 154156000","plateText":"\u004f\u0042\u0032\u0035\u0035\u0038\u0041\u004b","plateCountry":"BGR","plateConfidence":"0.727815","cameraId":"48EA633E7912","carState":"new","geotag":{"lat":50.418114,"lon":30.476213},"imageType":"plate","plateImageType":"png","plateImageSize":"0","carMoveDirection":"in","timeProcessing":"0","plateCoordinates":[420,180,356,66],"carID":"102","GEOtarget":"Camera","sensorProviderID":"Terminal_3"}
-{"command": "get_last_event", "params": { "message": "250000000", "sensor_provider_id": "Terminal_4" }}
+{"packetCounter":"1223","datetime":"20190123 154156000","plateText":"\u004f\u0042\u0032\u0035\u0035\u0038\u0041\u004b","plateCountry":"BGR","plateConfidence":"0.727815","cameraId":"48EA633E7912","carState":"new","geotag":{"lat":50.418114,"lon":30.476213},"imageType":"plate","plateImageType":"png","plateImageSize":"0","carMoveDirection":"in","timeProcessing":"0","plateCoordinates":[420,180,356,66],"carID":"102","GEOtarget":"Camera","sensorProviderID":"Terminal_2"}
+{"command": "get_last_event", "params": { "message": "250000000", "sensor_provider_id": "Terminal_1" }}
  */
 
 /*
