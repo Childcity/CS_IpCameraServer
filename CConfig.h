@@ -29,6 +29,7 @@ private:
 		long blockOrClusterSize;
 		long waitTimeMillisec;
 		long countOfEttempts;
+		bool allowCheckingSensProviderID;
 
 		string ipAdress;
 		long port;

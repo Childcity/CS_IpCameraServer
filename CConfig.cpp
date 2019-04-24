@@ -12,6 +12,7 @@ CConfig::KeyBindings::KeyBindings(const string exePath)
 	blockOrClusterSize = 4096;
 	waitTimeMillisec = 50;
 	countOfEttempts = 200;
+	allowCheckingSensProviderID = true;
 
 	ipAdress = "127.0.0.1";
 	port = 65044;
@@ -130,6 +131,7 @@ void CConfig::updateKeyBindings() {
 		keyBindings.threads = settings.GetInteger("ServerSettings", "Threads", -1L);
 		keyBindings.ipAdress = settings.Get("ServerSettings", "IpAddress", "0");
 		keyBindings.timeoutToDropConnection = settings.GetInteger("ServerSettings", "TimeoutToDropConnection", -1L);
+		keyBindings.allowCheckingSensProviderID = settings.GetBoolean("ServerSettings", "AllowCheckingSensProviderID", true);
 		//DB settings
 		keyBindings.dbPath = settings.Get("DatabaseSettings", "PathToDatabaseFile", "_a");
 		keyBindings.blockOrClusterSize = settings.GetInteger("DatabaseSettings", "BlockOrClusterSize", -1L);
@@ -185,6 +187,7 @@ void CConfig::saveKeyBindings() {
 	settings["ServerSettings"]["Threads"] = defaultKeyBindings.threads;
 	settings["ServerSettings"]["IpAddress"] = defaultKeyBindings.ipAdress;
 	settings["ServerSettings"]["TimeoutToDropConnection"]("5 min") = defaultKeyBindings.timeoutToDropConnection;
+	settings["ServerSettings"]["AllowCheckingSensProviderID"] = defaultKeyBindings.allowCheckingSensProviderID;
 	//DB settings
 	settings["DatabaseSettings"]["PathToDatabaseFile"] = defaultKeyBindings.dbPath;
 	settings["DatabaseSettings"]["BlockOrClusterSize"]("Set, according to your file system block/cluster size. This make sqlite db more faster") = defaultKeyBindings.blockOrClusterSize;
@@ -252,8 +255,11 @@ void CConfig::saveKeyBindings() {
 			"; LogDir = logs\n"
             "\n"
             "; true - print log to standard error stream (by default it is console)\n"
-            "; false - print log to log file"
-            "; LogToStdErr = true";
+            "; false - print log to log file\n"
+            "; LogToStdErr = true\n"
+			"\n"
+			"; true - allow checking ip camera sensor provider. (If in db doesn't exist sensor provider -> skip camera_event from camera)\n"
+			"; AllowCheckingSensProviderID = true";
 
 	//!!! This log massage go to stderr ONLY, because GLOG is not initialized yet !
 	LOG(WARNING) << "Default settings saved to'" << pathToSettings << "'";

@@ -10,9 +10,11 @@ CBusinessLogic::CBusinessLogic()
 CBusinessLogic::~CBusinessLogic() {VLOG(1) <<"DEBUG: ~CBusinessLogic";}
 
 bool CBusinessLogic::setLastIpCamEvent(const CSQLiteDB::ptr &dbPtr, const SIpCameraEvent &ipCamEvent) {
-    knownIpCameraList_.setActive(dbPtr);
-    if(! knownIpCameraList_.isActive(ipCamEvent.sensorProviderID)){
-        return false;
+    if(allowCheckingSensProviderID){
+        knownIpCameraList_.setActive(dbPtr);
+        if(! knownIpCameraList_.isActive(ipCamEvent.sensorProviderID)){
+            return false;
+        }
     }
 
     //exclusive access to data!

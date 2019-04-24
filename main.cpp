@@ -20,6 +20,7 @@ std::string dbPath;
 size_t sqlWaitTime;
 size_t sqlCountOfAttempts;
 long blockOrClusterSize;
+bool allowCheckingSensProviderID;
 
 static int running_from_service = 0;
 
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
         blockOrClusterSize = cfg.keyBindings.blockOrClusterSize;
         sqlWaitTime = static_cast<size_t>(cfg.keyBindings.waitTimeMillisec);
         sqlCountOfAttempts = static_cast<size_t>(cfg.keyBindings.countOfEttempts);
+        allowCheckingSensProviderID = cfg.keyBindings.allowCheckingSensProviderID;
 
         if(cfg.keyBindings.ipAdress.empty()){
             CServer Server(io_context,

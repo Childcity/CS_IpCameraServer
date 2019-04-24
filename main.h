@@ -18,6 +18,7 @@ extern std::string dbPath;
 extern size_t sqlWaitTime;
 extern size_t sqlCountOfAttempts;
 extern long blockOrClusterSize;
+extern bool allowCheckingSensProviderID;
 
 extern boost::recursive_mutex clients_cs;
 
